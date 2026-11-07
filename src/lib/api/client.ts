@@ -60,20 +60,18 @@ function resolvePortalDomain(): string {
   )
 }
 
-/** e.g. http://localhost:8000/ → http://localhost:8000/api/ */
-export const backendURL =
-  typeof window === 'undefined'
-    ? withTrailingSlash(trimSlash(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + '/')
-    : resolveBackendURL()
+/**
+ * Build-time values only (e.g. http://localhost:8000/ → http://localhost:8000/api/).
+ * In the browser /config.js may load after this module, so requests must use
+ * activeBaseURL() / activePortalDomain() instead.
+ */
+export const backendURL = withTrailingSlash(trimSlash(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + '/')
 
 /** JSON API root — `${backendURL}api/` (ERP convention). */
 export const baseURL = `${backendURL}api/`
 
 /** Sent as X-Portal-Domain so club.portal middleware can resolve the club. */
-export const portalDomain =
-  typeof window === 'undefined'
-    ? firstSet(process.env.NEXT_PUBLIC_PORTAL_DOMAIN, 'localhost')
-    : resolvePortalDomain()
+export const portalDomain = firstSet(process.env.NEXT_PUBLIC_PORTAL_DOMAIN, 'localhost')
 
 export type ClubApiResponse<T> = {
   success?: boolean
@@ -116,11 +114,11 @@ function activeBackendURL(): string {
   return typeof window === 'undefined' ? backendURL : resolveBackendURL()
 }
 
-function activeBaseURL(): string {
+export function activeBaseURL(): string {
   return `${activeBackendURL()}api/`
 }
 
-function activePortalDomain(): string {
+export function activePortalDomain(): string {
   return typeof window === 'undefined' ? portalDomain : resolvePortalDomain()
 }
 

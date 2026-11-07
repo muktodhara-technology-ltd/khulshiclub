@@ -1,7 +1,7 @@
 /**
  * Public club dues lookup (OTP-gated) → /api/club/club-portal/dues/*
  */
-import { ApiError, apiGet, apiPost, apiRequest, baseURL, mediaUrl, portalDomain } from './api/client'
+import { ApiError, apiGet, apiPost, apiRequest, activeBaseURL, activePortalDomain, mediaUrl } from './api/client'
 
 const BASE = 'club/club-portal/dues'
 const TOKEN_KEY = 'ckcl_dues_token'
@@ -192,7 +192,7 @@ export async function downloadDuesStatementPdf(from?: string, to?: string): Prom
     to ? `to=${encodeURIComponent(to)}` : '',
   ].filter(Boolean).join('&')
 
-  const url = `${baseURL}${BASE}/statement/pdf${qs ? `?${qs}` : ''}`
+  const url = `${activeBaseURL()}${BASE}/statement/pdf${qs ? `?${qs}` : ''}`
   let res: Response
   try {
     res = await fetch(url, {
@@ -200,7 +200,7 @@ export async function downloadDuesStatementPdf(from?: string, to?: string): Prom
       headers: {
         Accept: 'application/pdf',
         'X-Dues-Token': token,
-        'X-Portal-Domain': portalDomain,
+        'X-Portal-Domain': activePortalDomain(),
       },
     })
   } catch {

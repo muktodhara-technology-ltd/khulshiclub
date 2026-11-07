@@ -2,7 +2,7 @@
  * Signed-in member portal APIs → /api/club/club-portal/*
  */
 import { useCallback, useEffect, useState } from 'react'
-import { apiGet, apiPost, ApiError, baseURL, portalDomain } from './api/client'
+import { apiGet, apiPost, ApiError, activeBaseURL, activePortalDomain } from './api/client'
 import {
   clearMemberSession,
   getMemberSession,
@@ -171,7 +171,7 @@ export async function downloadPortalStatementPdf(from?: string, to?: string): Pr
     to ? `to=${encodeURIComponent(to)}` : '',
   ].filter(Boolean).join('&')
 
-  const url = `${baseURL}${BASE}/statement/pdf${qs ? `?${qs}` : ''}`
+  const url = `${activeBaseURL()}${BASE}/statement/pdf${qs ? `?${qs}` : ''}`
   let res: Response
   try {
     res = await fetch(url, {
@@ -179,7 +179,7 @@ export async function downloadPortalStatementPdf(from?: string, to?: string): Pr
       headers: {
         Accept: 'application/pdf',
         Authorization: `Bearer ${token}`,
-        'X-Portal-Domain': portalDomain,
+        'X-Portal-Domain': activePortalDomain(),
       },
     })
   } catch {
