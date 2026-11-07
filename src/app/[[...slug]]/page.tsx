@@ -1,6 +1,9 @@
 'use client'
 
-import App from '@/App'
+import dynamic from 'next/dynamic'
+
+// App reads window / storage during render (routing, sessions), so it can only render in the browser.
+const App = dynamic(() => import('@/App'), { ssr: false })
 
 /**
  * Catch-all App Router page — keeps existing client-side route map
