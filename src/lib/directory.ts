@@ -1,10 +1,10 @@
 /**
- * Public member directory → GET /club-portal/website/directory
+ * Public member directory → GET /club/club-portal/website/directory
  */
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet, mediaUrl } from './api/client'
 
-const PATH = 'club-portal/website/directory'
+const PATH = 'club/club-portal/website/directory'
 
 export type DirectoryMember = {
   id: string

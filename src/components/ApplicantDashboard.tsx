@@ -146,7 +146,7 @@ function Overview({ record, onSection, onPreview }: { record: ApplicantRecord; o
   )
 }
 
-/** Registration fee + the chosen category's fees, both from club-portal/settings. */
+/** Registration fee + the chosen category's fees, both from club/club-portal/settings. */
 function PaymentInfo({ membershipTypeId }: { membershipTypeId: string }) {
   const { data: settings, loading, error } = usePortalClubSettings()
   const type = settings?.membership_types?.find((t) => t.id === membershipTypeId)

@@ -127,7 +127,7 @@ function FormPages({ record }: { record: ApplicantRecord }) {
   // Header contact + address come from Website Maintenance → Site info.
   const site = useSiteInfo()
   const contactLine = [site.contact.phone, site.contact.phone_alt].filter(Boolean).join(', ')
-  // Category list = the club's active membership types (club-portal/settings).
+  // Category list = the club's active membership types (club/club-portal/settings).
   const { data: settings } = usePortalClubSettings()
   const categories = (settings?.membership_types || []).map((t) => ({ id: t.id, name: t.name }))
   if (categories.length === 0 && f.category) categories.push({ id: f.membership_type_id, name: f.category })

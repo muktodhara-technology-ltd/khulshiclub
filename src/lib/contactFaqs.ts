@@ -1,9 +1,9 @@
 /**
- * Contact page FAQs → GET /club-portal/website/contact-faqs
+ * Contact page FAQs → GET /club/club-portal/website/contact-faqs
  */
 import { useApi } from './useApi'
 
-const PATH = 'club-portal/website/contact-faqs'
+const PATH = 'club/club-portal/website/contact-faqs'
 
 export type ContactFaq = { q: string; a: string }
 

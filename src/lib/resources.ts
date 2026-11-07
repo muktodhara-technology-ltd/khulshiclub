@@ -1,11 +1,11 @@
 /**
- * Club Resources → /api/club-portal/website/resources
+ * Club Resources → /api/club/club-portal/website/resources
  * Maps paginated CMS resources to the public Annual Reports UI.
  */
 import { mediaUrl } from './api/client'
 import { useApi } from './useApi'
 
-const RESOURCES_API = 'club-portal/website/resources'
+const RESOURCES_API = 'club/club-portal/website/resources'
 
 export type Report = {
   id: number

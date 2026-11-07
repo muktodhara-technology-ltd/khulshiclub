@@ -1,5 +1,5 @@
 /**
- * Signed-in member portal APIs → /api/club-portal/*
+ * Signed-in member portal APIs → /api/club/club-portal/*
  */
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet, apiPost, ApiError, baseURL, portalDomain } from './api/client'
@@ -11,7 +11,7 @@ import {
   type MemberSession,
 } from './memberSession'
 
-const BASE = 'club-portal'
+const BASE = 'club/club-portal'
 
 export type PortalDashboard = {
   member: MemberProfile

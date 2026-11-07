@@ -22,7 +22,7 @@ const T = {
   brand: '#E10B17', brass: '#B98B43',
 }
 
-// ─── Data (club-portal/website/media/*) ───────────────────────────────────────
+// ─── Data (club/club-portal/website/media/*) ───────────────────────────────────────
 const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
   'Meeting':       { bg: '#EFF6FF', color: '#1D4ED8' },
   'Payment':       { bg: '#FFF7E6', color: '#B98B43' },

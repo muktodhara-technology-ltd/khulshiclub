@@ -1,11 +1,11 @@
 /**
- * Club Media Centre → /api/club-portal/website/media/*
+ * Club Media Centre → /api/club/club-portal/website/media/*
  * Maps Laravel paginated CMS rows to the public UI shapes.
  */
 import { mediaUrl } from './api/client'
 import { useApi } from './useApi'
 
-const MEDIA = 'club-portal/website/media'
+const MEDIA = 'club/club-portal/website/media'
 
 export type NoticeEntry = {
   id: number

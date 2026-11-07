@@ -2,28 +2,34 @@
 FROM oven/bun:1-alpine AS build
 WORKDIR /app
 
-# Install dependencies first so this layer is cached until the lockfile changes.
-# bunfig.toml makes `bun run` use the Bun runtime rather than Node.
 COPY package.json bun.lock bunfig.toml ./
 RUN bun install --frozen-lockfile
 
-# vite.config.ts imports .figma/make/site.json, so it must be in the context
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 
-# ─── Runtime stage — static files served by nginx ────────────────────────────
-FROM nginx:1.27-alpine AS runtime
+# ─── Runtime stage — Next.js standalone server ────────────────────────────────
+FROM node:22-alpine AS runtime
+WORKDIR /app
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=1111
+ENV HOSTNAME=0.0.0.0
 
-# Writes /config.js (API_URL, PORTAL_DOMAIN) from the container env at every start,
-# so the same image serves local, staging or live — set the vars in Coolify.
-COPY --chmod=755 docker/40-app-config.sh /docker-entrypoint.d/40-app-config.sh
+# Standalone output includes a minimal server + traced deps
+COPY --from=build /app/public ./public
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+
+# Writes /app/public/config.js (API_URL, PORTAL_DOMAIN) from env at every start
+COPY --chmod=755 docker/40-app-config.sh /app/docker-entrypoint.sh
 
 EXPOSE 1111
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:1111/healthz || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["node", "server.js"]

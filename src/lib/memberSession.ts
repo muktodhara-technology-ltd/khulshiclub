@@ -1,5 +1,5 @@
 /**
- * Member portal session: Bearer token + profile snapshot from club-portal/auth/login.
+ * Member portal session: Bearer token + profile snapshot from club/club-portal/auth/login.
  * Persisted in sessionStorage (tab lifetime).
  */
 import { useCallback, useEffect, useState } from 'react'

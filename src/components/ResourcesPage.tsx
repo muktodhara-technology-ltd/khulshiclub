@@ -285,7 +285,7 @@ type DueEntry = {
   id: number; period: string; description: string; amount: number; dueDate: string; paidDate?: string; status: DueStatus
 }
 
-// Live dues rows are loaded after OTP via /club-portal/dues/*
+// Live dues rows are loaded after OTP via /club/club-portal/dues/*
 let LIVE_DUES: DueEntry[] = []
 let LIVE_OUTSTANDING = 0
 
@@ -1139,7 +1139,7 @@ const primaryBtn = (disabled: boolean): React.CSSProperties => ({
 const Spinner = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
 
 function FindMember({ onSelect }: { onSelect: (m: DuesUiMember) => void }) {
-  // Filter options = the club's active membership types (club-portal/settings).
+  // Filter options = the club's active membership types (club/club-portal/settings).
   const { data: clubSettings } = usePortalClubSettings()
   const memberTypes = (clubSettings?.membership_types || []).map((t) => t.name)
   const [type, setType] = useState('')

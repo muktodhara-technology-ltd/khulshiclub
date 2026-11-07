@@ -1,3 +1,5 @@
+@import 'tailwindcss';
+
 /* CKCL brand typeface — the only fonts used in this project.
    Weights up to 500 use the regular file; 600 and above use the semibold file. */
 @font-face {
@@ -15,8 +17,6 @@
   font-style: normal;
   font-display: swap;
 }
-
-@import 'tailwindcss';
 
 @theme inline {
   --color-brand-red: #E10B17;

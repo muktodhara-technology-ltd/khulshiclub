@@ -1,8 +1,8 @@
 import { mediaUrl } from './api/client'
 import { useApi } from './useApi'
 
-const FACILITIES_API = 'club-portal/website/facilities'
-const AFFILIATED_API = 'club-portal/website/affiliated-clubs'
+const FACILITIES_API = 'club/club-portal/website/facilities'
+const AFFILIATED_API = 'club/club-portal/website/affiliated-clubs'
 
 export type FacilityQuickFact = { label: string; value: string }
 export type FacilityPhoto = { img: string; alt: string }

@@ -2,7 +2,7 @@ import { mediaUrl } from './api/client'
 import { useApi } from './useApi'
 import type { AboutBlock, AboutPageDoc } from './about'
 
-const MEMBERSHIP_API = 'club-portal/website/membership'
+const MEMBERSHIP_API = 'club/club-portal/website/membership'
 
 /** Admin payload keys → public PageId for Membership menu pages. */
 export const MEMBERSHIP_PAGE_KEYS = {

@@ -15,7 +15,7 @@ export type WebsiteOffer = {
 }
 
 export function useWebsiteOffers() {
-  const { data, error, loading, reload } = useApi<WebsiteOffer[]>('club-portal/website/offers')
+  const { data, error, loading, reload } = useApi<WebsiteOffer[]>('club/club-portal/website/offers')
   const offers = (data || []).map((o) => ({
     ...o,
     image: mediaUrl(o.image || '') || null,
@@ -24,6 +24,6 @@ export function useWebsiteOffers() {
 }
 
 export async function fetchWebsiteOffers() {
-  const rows = await apiGet<WebsiteOffer[]>('club-portal/website/offers')
+  const rows = await apiGet<WebsiteOffer[]>('club/club-portal/website/offers')
   return (rows || []).map((o) => ({ ...o, image: mediaUrl(o.image || '') || null }))
 }

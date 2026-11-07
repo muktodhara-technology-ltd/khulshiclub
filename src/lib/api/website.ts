@@ -1,10 +1,10 @@
 /**
- * Club public website endpoints → /api/club-portal/website/*
+ * Club public website endpoints → /api/club/club-portal/website/*
  * Same CMS tables as muktoerp admin Website Maintenance.
  */
 import { apiGet, apiPost } from './client'
 
-const BASE = 'club-portal/website'
+const BASE = 'club/club-portal/website'
 
 export type WebsiteHomePayload = {
   sections?: Record<string, Record<string, unknown>>

@@ -1,7 +1,7 @@
 import { mediaUrl } from './api/client'
 import { useApi } from './useApi'
 
-const ABOUT_API_PATH = 'club-portal/website/about'
+const ABOUT_API_PATH = 'club/club-portal/website/about'
 
 /** Admin page keys → public PageId mapping (refund tab is `refund` in CMS). */
 export const ABOUT_PAGE_KEYS = {

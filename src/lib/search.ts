@@ -1,10 +1,10 @@
 /**
- * Site search → GET /club-portal/website/search?q=
+ * Site search → GET /club/club-portal/website/search?q=
  */
 import { useEffect, useState } from 'react'
 import { apiGet, mediaUrl } from './api/client'
 
-const PATH = 'club-portal/website/search'
+const PATH = 'club/club-portal/website/search'
 
 export type SearchResultType = 'Page' | 'Notice' | 'Member' | 'Album' | 'News' | 'Facility'
 

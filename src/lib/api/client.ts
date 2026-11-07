@@ -18,10 +18,15 @@ function withTrailingSlash(url: string) {
  * Where the API lives, first match wins:
  *  1. window.__APP_CONFIG__ — /config.js, written from the container's env at start
  *     (API_URL / PORTAL_DOMAIN in Coolify). Change it there and restart; no rebuild.
- *  2. Vite env at build/dev time — .env / .env.local (NEXT_PUBLIC_BACKEND_URL, …).
+ *  2. Next.js env at build/dev time — .env / .env.local (NEXT_PUBLIC_BACKEND_URL, …).
  *  3. Local fallback: http://localhost:8000/ and the page's own hostname.
  */
-const runtimeConfig: AppRuntimeConfig = (typeof window !== 'undefined' && window.__APP_CONFIG__) || {}
+function runtimeConfig(): AppRuntimeConfig {
+  if (typeof window !== 'undefined' && window.__APP_CONFIG__) {
+    return window.__APP_CONFIG__
+  }
+  return {}
+}
 
 function firstSet(...values: (string | undefined | null)[]): string {
   for (const v of values) {
@@ -31,26 +36,44 @@ function firstSet(...values: (string | undefined | null)[]): string {
   return ''
 }
 
-const configuredBackend = firstSet(runtimeConfig.API_URL, import.meta.env.NEXT_PUBLIC_BACKEND_URL)
+function resolveBackendURL(): string {
+  const configuredBackend = firstSet(runtimeConfig().API_URL, process.env.NEXT_PUBLIC_BACKEND_URL)
 
-if (!configuredBackend && typeof window !== 'undefined' && !/^(localhost|127\.|192\.168\.|10\.)/.test(window.location.hostname)) {
-  // A deployed site with no API_URL would call the visitor's own localhost.
-  console.error('API_URL is not configured — set it on the container (see .env.example).')
+  if (
+    !configuredBackend &&
+    typeof window !== 'undefined' &&
+    !/^(localhost|127\.|192\.168\.|10\.)/.test(window.location.hostname)
+  ) {
+    // A deployed site with no API_URL would call the visitor's own localhost.
+    console.error('API_URL is not configured — set it on the container (see .env.example).')
+  }
+
+  return withTrailingSlash(trimSlash(configuredBackend || 'http://localhost:8000') + '/')
+}
+
+function resolvePortalDomain(): string {
+  return firstSet(
+    runtimeConfig().PORTAL_DOMAIN,
+    process.env.NEXT_PUBLIC_PORTAL_DOMAIN,
+    typeof window !== 'undefined' ? window.location.hostname : '',
+    'localhost',
+  )
 }
 
 /** e.g. http://localhost:8000/ → http://localhost:8000/api/ */
-export const backendURL = withTrailingSlash(trimSlash(configuredBackend || 'http://localhost:8000') + '/')
+export const backendURL =
+  typeof window === 'undefined'
+    ? withTrailingSlash(trimSlash(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000') + '/')
+    : resolveBackendURL()
 
 /** JSON API root — `${backendURL}api/` (ERP convention). */
 export const baseURL = `${backendURL}api/`
 
 /** Sent as X-Portal-Domain so club.portal middleware can resolve the club. */
-export const portalDomain = firstSet(
-  runtimeConfig.PORTAL_DOMAIN,
-  import.meta.env.NEXT_PUBLIC_PORTAL_DOMAIN,
-  typeof window !== 'undefined' ? window.location.hostname : '',
-  'localhost',
-)
+export const portalDomain =
+  typeof window === 'undefined'
+    ? firstSet(process.env.NEXT_PUBLIC_PORTAL_DOMAIN, 'localhost')
+    : resolvePortalDomain()
 
 export type ClubApiResponse<T> = {
   success?: boolean
@@ -79,6 +102,7 @@ function joinUrl(base: string, path: string) {
 
 function readMemberBearer(): string | null {
   try {
+    if (typeof window === 'undefined') return null
     const raw = sessionStorage.getItem('ckcl_member_session')
     if (!raw) return null
     const parsed = JSON.parse(raw) as { token?: string }
@@ -88,15 +112,27 @@ function readMemberBearer(): string | null {
   }
 }
 
+function activeBackendURL(): string {
+  return typeof window === 'undefined' ? backendURL : resolveBackendURL()
+}
+
+function activeBaseURL(): string {
+  return `${activeBackendURL()}api/`
+}
+
+function activePortalDomain(): string {
+  return typeof window === 'undefined' ? portalDomain : resolvePortalDomain()
+}
+
 /**
- * Low-level request. `path` is relative to /api/ (e.g. `club-portal/website/home`).
+ * Low-level request. `path` is relative to /api/ (e.g. `club/club-portal/website/home`).
  * Unwraps Club `{ success, data, message }` and returns `data`.
  * Attaches member Bearer token when a portal session exists.
  */
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'X-Portal-Domain': portalDomain,
+    'X-Portal-Domain': activePortalDomain(),
     ...(init.headers as Record<string, string> | undefined),
   }
   if (!headers.Authorization && !headers.authorization) {
@@ -109,7 +145,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
 
   let res: Response
   try {
-    res = await fetch(joinUrl(baseURL, path), { ...init, headers })
+    res = await fetch(joinUrl(activeBaseURL(), path), { ...init, headers })
   } catch {
     throw new ApiError('Could not reach the club server. Please check your connection and try again.', 0)
   }
@@ -152,7 +188,11 @@ export function mediaUrl(src: string | null | undefined): string {
   const v = String(src).trim()
   if (!v) return ''
   if (/^(https?:|blob:|data:)/i.test(v)) return v
-  if (v.startsWith('//')) return `${window.location.protocol}${v}`
-  if (v.startsWith('/')) return `${trimSlash(backendURL)}${v}`
-  return `${backendURL}${v.replace(/^\//, '')}`
+  if (v.startsWith('//')) {
+    if (typeof window === 'undefined') return `https:${v}`
+    return `${window.location.protocol}${v}`
+  }
+  const host = activeBackendURL()
+  if (v.startsWith('/')) return `${trimSlash(host)}${v}`
+  return `${host}${v.replace(/^\//, '')}`
 }

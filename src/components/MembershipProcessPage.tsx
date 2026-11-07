@@ -225,7 +225,7 @@ function BackSection({ title, children }: { title: string; children: ReactNode }
 
 function TierCard({ tier, onApply }: { tier: Tier; onApply: () => void }) {
   const site = useSiteInfo()
-  // Fees come from the matching membership type's fee package (club-portal/settings)
+  // Fees come from the matching membership type's fee package (club/club-portal/settings)
   const { data: clubSettings } = usePortalClubSettings()
   const fees = matchMembershipType(tier.name, clubSettings?.membership_types || [])?.fees || []
   const [flipped, setFlipped] = useState(false)

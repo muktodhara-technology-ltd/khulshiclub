@@ -2,7 +2,8 @@
 node_modules
 dist
 dist-ssr
-.vite
+.next
+out
 *.tsbuildinfo
 coverage
 
@@ -32,5 +33,3 @@ bun-debug.log*
 # Docker files themselves
 Dockerfile
 .dockerignore
-
-# NOTE: .figma/ is intentionally NOT ignored — vite.config.ts imports .figma/make/site.json

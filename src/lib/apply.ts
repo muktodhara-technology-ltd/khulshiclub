@@ -1,17 +1,17 @@
 /**
  * Public membership application APIs:
- *   GET  /club-portal/settings
- *   GET  /club-portal/proposers?q=
- *   GET  /club-portal/bank-accounts
- *   POST /club-portal/check-applicant
- *   POST /club-portal/apply
- *   POST /club-portal/application-status
+ *   GET  /club/club-portal/settings
+ *   GET  /club/club-portal/proposers?q=
+ *   GET  /club/club-portal/bank-accounts
+ *   POST /club/club-portal/check-applicant
+ *   POST /club/club-portal/apply
+ *   POST /club/club-portal/application-status
  */
 import { apiGet, apiPost, ApiError } from './api/client'
 import { useApi } from './useApi'
 import type { ApplicantAccount, ApplicationForm } from '../data/application'
 
-const BASE = 'club-portal'
+const BASE = 'club/club-portal'
 
 export type PortalMembershipType = {
   id: string

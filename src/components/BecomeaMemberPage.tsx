@@ -432,7 +432,7 @@ function DocUpload({ label, value, onChange }: { label: string; value: string | 
   )
 }
 
-// ─── Member autocomplete (API: GET /club-portal/proposers) ─────────────────────
+// ─── Member autocomplete (API: GET /club/club-portal/proposers) ─────────────────────
 /** Club names from Website Maintenance → Site Info (short for inline copy, full for legal text). */
 function useClubNames() {
   const site = useSiteInfo()

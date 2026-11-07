@@ -1,9 +1,9 @@
 /**
- * Public club dues lookup (OTP-gated) → /api/club-portal/dues/*
+ * Public club dues lookup (OTP-gated) → /api/club/club-portal/dues/*
  */
 import { ApiError, apiGet, apiPost, apiRequest, baseURL, mediaUrl, portalDomain } from './api/client'
 
-const BASE = 'club-portal/dues'
+const BASE = 'club/club-portal/dues'
 const TOKEN_KEY = 'ckcl_dues_token'
 
 export type DuesMemberHit = {

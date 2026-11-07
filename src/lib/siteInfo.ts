@@ -3,7 +3,7 @@ import type { WebsiteSiteInfoRaw } from './api/website'
 
 /**
  * Club-wide details from Club → Website Maintenance → Site Info
- * GET /api/club-portal/website/site-info
+ * GET /api/club/club-portal/website/site-info
  * No dummy fallback — empty until API succeeds.
  */
 
@@ -166,7 +166,7 @@ function mapSiteInfo(raw: WebsiteSiteInfoRaw | null | undefined): SiteInfo | nul
   }
 }
 
-const SITE_API_PATH = 'club-portal/website/site-info'
+const SITE_API_PATH = 'club/club-portal/website/site-info'
 
 export function useSiteInfo(): SiteInfo & { fromApi: boolean; loading: boolean; error: string | null } {
   const { data, error, loading } = useApi<WebsiteSiteInfoRaw | null>(SITE_API_PATH)

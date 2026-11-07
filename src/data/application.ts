@@ -1,8 +1,8 @@
 // Membership application — local draft account + form in localStorage;
-// final submit goes to POST /club-portal/apply.
+// final submit goes to POST /club/club-portal/apply.
 
 // Membership categories, their fees and the registration fee come from
-// club-portal/settings (see lib/apply.ts) — nothing is hardcoded here.
+// club/club-portal/settings (see lib/apply.ts) — nothing is hardcoded here.
 
 export type Address = {
   address: string; policeStation: string; postOffice: string; postalCode: string; district: string; country: string
@@ -31,7 +31,7 @@ export type ApplicationForm = {
   otherClubs: OtherClub[]
   /** Display label (membership type name) */
   category: string
-  /** UUID from club-portal/settings → membership_types */
+  /** UUID from club/club-portal/settings → membership_types */
   membership_type_id: string
   proposer: { name: string; memberId: string }
   documents: { nidCopy: string | null; photos: string | null; tradeLicence: string | null }
@@ -93,7 +93,7 @@ export function formCompletion(f: ApplicationForm): number {
   return Math.round((checks.filter(Boolean).length / checks.length) * 100)
 }
 
-// ─── Storage (local drafts only; proposers come from GET /club-portal/proposers) ─
+// ─── Storage (local drafts only; proposers come from GET /club/club-portal/proposers) ─
 const RECORDS_KEY = 'ckcl-applicants'
 const SESSION_KEY = 'ckcl-applicant-session'
 

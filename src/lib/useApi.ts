@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiGet } from './api/client'
 
 /**
- * Session-cached GET for club-portal paths (relative to /api/).
- * Example: useApi('club-portal/website/home')
+ * Session-cached GET for club/club-portal paths (relative to /api/).
+ * Example: useApi('club/club-portal/website/home')
  */
 const cache = new Map<string, unknown>()
 const pending = new Map<string, Promise<unknown>>()

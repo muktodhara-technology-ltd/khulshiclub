@@ -4,7 +4,7 @@ import type { WebsiteHomeResponse } from './api/website'
 
 /**
  * Home page sections from Club → Website Maintenance → Home
- * GET /api/club-portal/website/home → data.payload.sections
+ * GET /api/club/club-portal/website/home → data.payload.sections
  *
  * No offline dummy copy — until the API succeeds, sections stay empty.
  */
@@ -184,7 +184,7 @@ export const EMPTY_HOME: HomeContent = {
 /** @deprecated Use EMPTY_HOME — kept so old imports don't break. */
 export const DEFAULT_HOME = EMPTY_HOME
 
-const HOME_API_PATH = 'club-portal/website/home'
+const HOME_API_PATH = 'club/club-portal/website/home'
 
 function asSection(raw: unknown): Record<string, unknown> {
   return raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {}

@@ -416,7 +416,7 @@ function MapBand() {
   )
 }
 
-// ─── FAQ (API: GET /club-portal/website/contact-faqs) ─────────────────────────
+// ─── FAQ (API: GET /club/club-portal/website/contact-faqs) ─────────────────────────
 function ContactFAQ() {
   const [open, setOpen] = useState<number | null>(null)
   const { faqs, loading } = useContactFaqs()
