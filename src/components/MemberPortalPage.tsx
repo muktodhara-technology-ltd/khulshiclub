@@ -2069,9 +2069,11 @@ function FieldInput({
   const [show, setShow] = useState(false)
   const [focused, setFocused] = useState(false)
 
-  const masked = sensitive && !show && value.length > 4
-    ? '•'.repeat(value.length - 4) + value.slice(-4)
-    : value
+  // Locked + sensitive: show last-4 only. Editable sensitive uses password-type mask (still typeable).
+  const displayValue =
+    locked && sensitive && !show && value.length > 4
+      ? `${'•'.repeat(Math.min(value.length - 4, 12))}${value.slice(-4)}`
+      : value
 
   const border = error ? T.brand : focused ? T.ink600 : T.ink100
   const bg = locked ? T.surface100 : T.surface0
@@ -2094,13 +2096,14 @@ function FieldInput({
               {options?.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           : <input
-              type={sensitive && !show ? 'password' : type}
-              value={masked}
-              readOnly={locked || sensitive}
+              type={sensitive && !show && !locked ? 'password' : type}
+              value={displayValue}
+              readOnly={locked}
               placeholder={placeholder}
               onChange={(e) => !locked && onChange?.(e.target.value)}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
+              autoComplete={sensitive ? 'off' : undefined}
               style={{ width: '100%', height: 44, padding: `0 ${(locked || sensitive) ? '44px' : '12px'} 0 12px`, fontFamily: 'CKCL', fontSize: 14, color: T.ink900, background: bg, border: `1.5px solid ${border}`, borderRadius: 9, outline: 'none', cursor: locked ? 'not-allowed' : 'text', boxShadow: shadow, transition: 'border-color 140ms, box-shadow 140ms', boxSizing: 'border-box' as const }}
             />
         }
