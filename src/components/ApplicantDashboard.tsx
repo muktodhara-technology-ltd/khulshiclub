@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { applicantName, formCompletion, type ApplicantRecord } from '../data/application'
-import { applicationFeeRows, usePortalClubSettings } from '../lib/apply'
+import { applicationFeeRows, fetchApplicationStatus, usePortalClubSettings } from '../lib/apply'
+import { pathForPage } from '../lib/routing'
 
 // ─── Applicant dashboard ──────────────────────────────────────────────────────
 // A slimmer version of the member portal for people applying to join:
@@ -41,9 +42,19 @@ function navItemStyle(active: boolean): React.CSSProperties {
   }
 }
 
+function statusChipStyle(record: ApplicantRecord): { label: string; bg: string; color: string } {
+  if (record.status !== 'submitted') {
+    return { label: 'Draft', bg: T.surface100, color: T.ink400 }
+  }
+  const s = String(record.serverStatus || 'pending').toLowerCase()
+  if (s === 'approved') return { label: 'Approved', bg: T.greenDim, color: T.green }
+  if (s === 'rejected') return { label: 'Rejected', bg: T.brandDim, color: T.brand }
+  if (s === 'under_review') return { label: 'Under review', bg: T.amberDim, color: T.amber }
+  return { label: 'Pending review', bg: T.amberDim, color: T.amber }
+}
+
 function StatusChip({ record }: { record: ApplicantRecord }) {
-  const submitted = record.status === 'submitted'
-  const s = submitted ? { label: 'Pending review', bg: T.amberDim, color: T.amber } : { label: 'Draft', bg: T.surface100, color: T.ink400 }
+  const s = statusChipStyle(record)
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'CKCL', fontWeight: 600, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: s.color, background: s.bg, border: `1px solid ${s.color}30`, borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color }}/>{s.label}
@@ -90,10 +101,59 @@ function DefRow({ label, children }: { label: string; children: React.ReactNode 
 
 const linkBtn: React.CSSProperties = { fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: T.brand, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }
 
+function overviewCopy(record: ApplicantRecord, done: number): { title: string; body: string; accent: string } {
+  if (record.status !== 'submitted') {
+    return {
+      title: done === 0 ? 'Start your membership form.' : 'Finish your membership form.',
+      body: 'Your answers save automatically, so you can come back and finish later.',
+      accent: T.brand,
+    }
+  }
+  const s = String(record.serverStatus || 'pending').toLowerCase()
+  const submittedOn = record.submittedAt
+    ? new Date(record.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : ''
+  const ref = record.reference ? `Reference ${record.reference}.` : ''
+  if (s === 'approved') {
+    return {
+      title: 'Your membership has been approved.',
+      body: [
+        submittedOn ? `Submitted ${submittedOn}.` : null,
+        ref,
+        record.memberNo ? `Member no. ${record.memberNo}.` : null,
+        record.canSignIn ? 'Sign in to the member portal with your applicant email and password.' : 'The club office will help you access the member portal.',
+      ].filter(Boolean).join(' '),
+      accent: T.green,
+    }
+  }
+  if (s === 'rejected') {
+    return {
+      title: 'Your application was not approved.',
+      body: [ref, record.rejectedReason ? `Reason: ${record.rejectedReason}` : 'Please contact the club office for details.'].filter(Boolean).join(' '),
+      accent: T.brand,
+    }
+  }
+  if (s === 'under_review') {
+    return {
+      title: 'Your application is under review.',
+      body: `Submitted ${submittedOn} · ${ref} We'll email you after the committee decides.`,
+      accent: T.amber,
+    }
+  }
+  return {
+    title: 'Your application is with the committee.',
+    body: `Submitted ${submittedOn} · ${ref} We'll email you after the review.`,
+    accent: T.amber,
+  }
+}
+
 function Overview({ record, onSection, onPreview }: { record: ApplicantRecord; onSection: (s: ApplicantSection) => void; onPreview: () => void }) {
   const a = record.account
   const done = formCompletion(record.form)
   const submitted = record.status === 'submitted'
+  const server = String(record.serverStatus || '').toLowerCase()
+  const approved = submitted && server === 'approved'
+  const copy = overviewCopy(record, done)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -103,16 +163,10 @@ function Overview({ record, onSection, onPreview }: { record: ApplicantRecord; o
       </div>
 
       {/* Next step */}
-      <div style={{ ...CARD, padding: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, borderLeft: `3px solid ${submitted ? T.amber : T.brand}` }}>
+      <div style={{ ...CARD, padding: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, borderLeft: `3px solid ${copy.accent}` }}>
         <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-          <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 16, color: T.ink900 }}>
-            {submitted ? 'Your application is with the committee.' : done === 0 ? 'Start your membership form.' : 'Finish your membership form.'}
-          </div>
-          <div style={{ fontFamily: 'CKCL', fontSize: 13.5, color: T.ink400, marginTop: 4, lineHeight: 1.55 }}>
-            {submitted
-              ? `Submitted ${record.submittedAt ? new Date(record.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''} · Reference ${record.reference}. We'll email you after the review.`
-              : 'Your answers save automatically, so you can come back and finish later.'}
-          </div>
+          <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 16, color: T.ink900 }}>{copy.title}</div>
+          <div style={{ fontFamily: 'CKCL', fontSize: 13.5, color: T.ink400, marginTop: 4, lineHeight: 1.55 }}>{copy.body}</div>
           {!submitted && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
               <div style={{ flex: 1, maxWidth: 320, height: 6, borderRadius: 999, background: T.surface100, overflow: 'hidden' }}>
@@ -124,6 +178,11 @@ function Overview({ record, onSection, onPreview }: { record: ApplicantRecord; o
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={onPreview} style={{ height: 42, padding: '0 18px', borderRadius: 999, border: `1.5px solid ${T.ink100}`, background: T.surface0, fontFamily: 'CKCL', fontSize: 13.5, fontWeight: 600, color: T.ink700, cursor: 'pointer' }}>Preview</button>
+          {approved && record.canSignIn ? (
+            <a href={pathForPage('member-login')} style={{ height: 42, padding: '0 20px', borderRadius: 999, border: 'none', background: T.brand, fontFamily: 'CKCL', fontSize: 13.5, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              Open member portal
+            </a>
+          ) : null}
           {!submitted && (
             <button onClick={() => onSection('form')} style={{ height: 42, padding: '0 20px', borderRadius: 999, border: 'none', background: T.brand, fontFamily: 'CKCL', fontSize: 13.5, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer' }}>
               {done === 0 ? 'Start form' : 'Continue form'}
@@ -391,7 +450,7 @@ function ApplicantTabBar({ section, onSelect }: { section: ApplicantSection; onS
 }
 
 export default function ApplicantDashboard({
-  record, section, onSection, onPreview, onLogout, onChangePassword, formSlot,
+  record, section, onSection, onPreview, onLogout, onChangePassword, onRecordChange, formSlot,
 }: {
   record: ApplicantRecord
   section: ApplicantSection
@@ -399,11 +458,40 @@ export default function ApplicantDashboard({
   onPreview: () => void
   onLogout: () => void
   onChangePassword: (pw: string) => void
+  onRecordChange?: (r: ApplicantRecord) => void
   formSlot: React.ReactNode
 }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
   const name = applicantName(record.account)
   const select = (id: NavId) => (id === 'preview' ? onPreview() : onSection(id))
+
+  // localStorage stays "submitted"; refresh live club status so approve/reject shows correctly.
+  useEffect(() => {
+    if (record.status !== 'submitted' || !record.reference || !onRecordChange) return
+    let alive = true
+    const phone = record.form.personal.phone || record.account.mobile
+    fetchApplicationStatus(record.reference, phone)
+      .then((res) => {
+        if (!alive) return
+        if (
+          res.status === record.serverStatus &&
+          res.member_no === record.memberNo &&
+          res.can_sign_in === record.canSignIn &&
+          (res.rejected_reason || null) === (record.rejectedReason || null)
+        ) {
+          return
+        }
+        onRecordChange({
+          ...record,
+          serverStatus: res.status,
+          memberNo: res.member_no ?? null,
+          rejectedReason: res.rejected_reason ?? null,
+          canSignIn: Boolean(res.can_sign_in),
+        })
+      })
+      .catch(() => { /* keep last known chip */ })
+    return () => { alive = false }
+  }, [record.status, record.reference, record.form.personal.phone, record.account.mobile]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(20px,3vw,40px) clamp(16px,4vw,48px) 0' }}>

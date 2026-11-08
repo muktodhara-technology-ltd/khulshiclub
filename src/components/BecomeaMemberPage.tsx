@@ -1177,6 +1177,7 @@ function MembershipFormSection({ record, onChange, onPreview, onSubmitted }: {
       <SubmittedApplication
         record={record}
         onPreview={onPreview}
+        onRecordChange={onChange}
       />
     )
   }
@@ -1237,8 +1238,25 @@ function MembershipFormSection({ record, onChange, onPreview, onSubmitted }: {
   )
 }
 
-function SubmittedApplication({ record, onPreview }: { record: ApplicantRecord; onPreview: () => void }) {
-  const [liveStatus, setLiveStatus] = useState<string | null>(null)
+function humanizeAppStatus(status: string | null | undefined) {
+  const s = String(status || 'pending').toLowerCase()
+  if (s === 'under_review') return 'Under review'
+  if (s === 'approved') return 'Approved'
+  if (s === 'rejected') return 'Rejected'
+  if (s === 'pending') return 'Pending review'
+  return s.replace(/_/g, ' ')
+}
+
+function SubmittedApplication({
+  record,
+  onPreview,
+  onRecordChange,
+}: {
+  record: ApplicantRecord
+  onPreview: () => void
+  onRecordChange?: (r: ApplicantRecord) => void
+}) {
+  const [liveStatus, setLiveStatus] = useState<string | null>(record.serverStatus || null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
 
@@ -1250,6 +1268,13 @@ function SubmittedApplication({ record, onPreview }: { record: ApplicantRecord; 
       const phone = record.form.personal.phone || record.account.mobile
       const res = await fetchApplicationStatus(record.reference, phone)
       setLiveStatus(res.status)
+      onRecordChange?.({
+        ...record,
+        serverStatus: res.status,
+        memberNo: res.member_no ?? null,
+        rejectedReason: res.rejected_reason ?? null,
+        canSignIn: Boolean(res.can_sign_in),
+      })
     } catch (e) {
       setStatusError(e instanceof Error ? e.message : 'Could not refresh status.')
     } finally {
@@ -1259,20 +1284,34 @@ function SubmittedApplication({ record, onPreview }: { record: ApplicantRecord; 
 
   useEffect(() => { void refresh() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const status = (liveStatus || record.serverStatus || 'pending').toLowerCase()
+  const approved = status === 'approved'
+  const rejected = status === 'rejected'
+
   return (
     <div style={{ background: '#FFFFFF', border: `1px solid ${T.ink100}`, borderRadius: 20, padding: 'clamp(28px,4vw,48px)', textAlign: 'center', maxWidth: 560, margin: '0 auto 48px' }}>
-      <div style={{ width: 64, height: 64, borderRadius: '50%', background: T.greenDim, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <div style={{ width: 64, height: 64, borderRadius: '50%', background: rejected ? T.brandDim : T.greenDim, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+        {rejected
+          ? <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.red} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          : <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
       </div>
-      <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 24, color: T.ink900, marginBottom: 6 }}>Application submitted.</div>
+      <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 24, color: T.ink900, marginBottom: 6 }}>
+        {approved ? 'Membership approved.' : rejected ? 'Application not approved.' : 'Application submitted.'}
+      </div>
       <p style={{ fontFamily: 'CKCL', fontSize: 14.5, color: T.ink400, lineHeight: 1.65, margin: '0 0 20px' }}>
-        Your membership form is with the Executive Committee and can no longer be edited. Print the preview, sign it, and bring it to the club office with four passport-sized photos.
+        {approved
+          ? (record.canSignIn || record.memberNo
+            ? `You can sign in to the member portal${record.memberNo ? ` as ${record.memberNo}` : ''}.`
+            : 'The club office will help you access the member portal.')
+          : rejected
+            ? (record.rejectedReason || 'Please contact the club office for details.')
+            : 'Your membership form is with the Executive Committee and can no longer be edited. Print the preview, sign it, and bring it to the club office with four passport-sized photos.'}
       </p>
       <div style={{ background: T.surface50, border: `1px solid ${T.ink100}`, borderRadius: 12, padding: '14px 18px', marginBottom: 12 }}>
         <div style={{ fontFamily: 'CKCL', fontSize: 11, color: T.ink200, letterSpacing: '0.04em', marginBottom: 4 }}>APPLICATION REFERENCE</div>
         <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 20, color: T.brand, letterSpacing: '0.1em' }}>{record.reference}</div>
         <div style={{ fontFamily: 'CKCL', fontSize: 13, color: T.ink400, marginTop: 10 }}>
-          Status: <strong style={{ color: T.ink900 }}>{liveStatus || 'pending'}</strong>
+          Status: <strong style={{ color: T.ink900 }}>{humanizeAppStatus(liveStatus || record.serverStatus)}</strong>
         </div>
         {statusError && <div style={{ fontFamily: 'CKCL', fontSize: 12, color: T.red, marginTop: 6 }}>{statusError}</div>}
       </div>
@@ -1280,9 +1319,15 @@ function SubmittedApplication({ record, onPreview }: { record: ApplicantRecord; 
         <button type="button" onClick={() => { void refresh() }} disabled={checking} style={{ height: 46, padding: '0 22px', borderRadius: 999, border: `1px solid ${T.ink100}`, background: '#FFFFFF', fontFamily: 'CKCL', fontSize: 14, fontWeight: 600, color: T.ink600, cursor: 'pointer' }}>
           {checking ? 'Checking…' : 'Refresh status'}
         </button>
-        <button type="button" onClick={onPreview} style={{ height: 46, padding: '0 26px', borderRadius: 999, border: 'none', background: T.brand, fontFamily: 'CKCL', fontSize: 14, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer' }}>
-          Preview membership form
-        </button>
+        {approved ? (
+          <a href={pathForPage('member-login')} style={{ height: 46, padding: '0 26px', borderRadius: 999, border: 'none', background: T.brand, fontFamily: 'CKCL', fontSize: 14, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+            Open member portal
+          </a>
+        ) : (
+          <button type="button" onClick={onPreview} style={{ height: 46, padding: '0 26px', borderRadius: 999, border: 'none', background: T.brand, fontFamily: 'CKCL', fontSize: 14, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer' }}>
+            Preview membership form
+          </button>
+        )}
       </div>
     </div>
   )
@@ -1550,6 +1595,7 @@ export default function BecomeaMemberPage(_props: { onHome: () => void }) {
         onPreview={() => setPreviewing(true)}
         onLogout={() => { setSession(null); setRecord(null); setSection('dashboard'); window.scrollTo({ top: 0 }) }}
         onChangePassword={(password) => change({ ...record, account: { ...record.account, password } })}
+        onRecordChange={change}
         formSlot={<MembershipFormSection record={record} onChange={change} onPreview={() => setPreviewing(true)} onSubmitted={() => window.scrollTo({ top: 0, behavior: 'smooth' })}/>}
       />
       {previewing && <MembershipFormPdf record={record} onClose={() => setPreviewing(false)}/>}

@@ -49,6 +49,11 @@ export type ApplicantRecord = {
   status: ApplicationStatus
   submittedAt?: string
   reference?: string
+  /** Latest status from POST club/club-portal/application-status (pending, under_review, approved, …). */
+  serverStatus?: string
+  memberNo?: string | null
+  rejectedReason?: string | null
+  canSignIn?: boolean
 }
 
 export const emptyAddress = (): Address => ({ address: '', policeStation: '', postOffice: '', postalCode: '', district: '', country: 'Bangladesh' })
