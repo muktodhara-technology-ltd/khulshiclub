@@ -4,11 +4,19 @@ import { apiGet } from './api/client'
 /**
  * Session-cached GET for club/club-portal paths (relative to /api/).
  * Example: useApi('club/club-portal/website/home')
+ *
+ * Soft navigations reuse memory cache (no network, no empty flash).
+ * Hard reload clears the Map → fresh fetch. Call reload() / invalidateApiCache()
+ * to force a refresh without a full page reload.
  */
 const cache = new Map<string, unknown>()
 const pending = new Map<string, Promise<unknown>>()
 
-function load<T>(path: string): Promise<T> {
+function load<T>(path: string, force = false): Promise<T> {
+  if (!force && cache.has(path)) {
+    return Promise.resolve(cache.get(path) as T)
+  }
+
   const existing = pending.get(path) as Promise<T> | undefined
   if (existing) return existing
 
@@ -57,16 +65,19 @@ export function useApi<T>(path: string | null) {
 
     let alive = true
 
+    // Already fetched this session — show cache and skip the network.
+    // reload() clears cache then bumps nonce so the next run fetches again.
     if (cache.has(path)) {
       setData(cache.get(path) as T)
       setLoading(false)
       setError(null)
-    } else {
-      setLoading(true)
-      setError(null)
+      return
     }
 
-    load<T>(path)
+    setLoading(true)
+    setError(null)
+
+    load<T>(path, true)
       .then((d) => {
         if (!alive) return
         setData(d)
