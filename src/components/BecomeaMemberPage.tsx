@@ -395,39 +395,79 @@ function PhotoUpload({ value, onChange }: { value: string | null; onChange: (v: 
 }
 
 // ─── Doc upload row ───────────────────────────────────────────────────────────
+/** Stores a data-URL so apply.ts can rebuild a real File for multipart submit. */
 function DocUpload({ label, value, onChange }: { label: string; value: string | null; onChange: (v: string | null) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const hasFile = Boolean(value && value.startsWith('data:'))
+
+  const handleFile = (file: File) => {
+    const okType =
+      file.type.startsWith('image/') ||
+      file.type === 'application/pdf' ||
+      /\.(jpe?g|png|webp|pdf)$/i.test(file.name)
+    if (!okType) return
+    if (file.size > 5 * 1024 * 1024) return
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      if (!dataUrl) return
+      setFileName(file.name)
+      onChange(dataUrl)
+    }
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '14px 16px',
-        border: `1px solid ${value ? T.green : T.ink100}`,
+        border: `1px solid ${hasFile ? T.green : T.ink100}`,
         borderRadius: 10,
-        background: value ? T.greenDim : '#FFFFFF',
+        background: hasFile ? T.greenDim : '#FFFFFF',
         transition: 'all 200ms',
       }}
     >
-      <div style={{ width: 36, height: 36, borderRadius: 8, background: value ? T.green : T.surface100, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 200ms' }}>
-        {value
+      <div style={{ width: 36, height: 36, borderRadius: 8, background: hasFile ? T.green : T.surface100, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 200ms' }}>
+        {hasFile
           ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.ink200} strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         }
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: value ? T.green : T.ink600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-        <div style={{ fontFamily: 'CKCL', fontSize: 11, color: value ? T.green : T.ink200, marginTop: 1 }}>{value ? 'File uploaded' : 'PDF, JPG or PNG · max 5 MB'}</div>
+        <div style={{ fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: hasFile ? T.green : T.ink600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        <div style={{ fontFamily: 'CKCL', fontSize: 11, color: hasFile ? T.green : T.ink200, marginTop: 1 }}>
+          {hasFile ? (fileName || 'File ready to submit') : 'PDF, JPG or PNG · max 5 MB'}
+        </div>
       </div>
       <button
-        onClick={() => value ? onChange(null) : inputRef.current?.click()}
-        style={{ fontFamily: 'CKCL', fontSize: 12, fontWeight: 600, color: value ? T.red : T.brand, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: 8, flexShrink: 0 }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = value ? T.redDim : T.redDim }}
+        type="button"
+        onClick={() => {
+          if (hasFile) {
+            setFileName(null)
+            onChange(null)
+          } else {
+            inputRef.current?.click()
+          }
+        }}
+        style={{ fontFamily: 'CKCL', fontSize: 12, fontWeight: 600, color: hasFile ? T.red : T.brand, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: 8, flexShrink: 0 }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = hasFile ? T.redDim : T.redDim }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none' }}
       >
-        {value ? 'Remove' : 'Upload'}
+        {hasFile ? 'Remove' : 'Upload'}
       </button>
-      <input ref={inputRef} type="file" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.[0]) onChange(e.target.files[0].name) }} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) handleFile(f)
+        }}
+      />
     </div>
   )
 }

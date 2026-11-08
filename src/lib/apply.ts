@@ -272,7 +272,8 @@ export function buildApplicationFormData(account: ApplicantAccount, form: Applic
     { type: 'other', data: form.documents.tradeLicence, name: 'trade-licence' },
   ]
   for (const d of docs) {
-    if (!d.data) continue
+    // Must be a data-URL from DocUpload — plain filenames are ignored (old broken drafts).
+    if (!d.data || !d.data.startsWith('data:')) continue
     const file = dataUrlToFile(d.data, d.name)
     if (!file) continue
     append(fd, `documents[${di}][type]`, d.type)
