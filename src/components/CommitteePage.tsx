@@ -407,7 +407,7 @@ export default function CommitteePage({
       ) : null}
       {showEmpty && !error ? (
         <p style={{ fontFamily: 'CKCL', fontSize: 15, color: '#5C6673', marginBottom: 24 }}>
-          No committee members published yet. Add them in Website Maintenance → About.
+          No committee members published yet. Add them in Website Maintenance → About → Founding / Executive Committee.
         </p>
       ) : null}
       {/* Filter chip row */}
