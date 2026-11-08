@@ -9,7 +9,7 @@
  */
 import { apiGet, apiPost, ApiError } from './api/client'
 import { useApi } from './useApi'
-import type { ApplicantAccount, ApplicationForm } from '../data/application'
+import type { Address, ApplicantAccount, ApplicationForm } from '../data/application'
 
 const BASE = 'club/club-portal'
 
@@ -161,6 +161,13 @@ function append(fd: FormData, key: string, value: string | Blob | null | undefin
   fd.append(key, value as string | Blob)
 }
 
+/** Single-line address for storage / admin review. */
+function joinAddress(a: Address): string {
+  return [a.address, a.policeStation && `PS: ${a.policeStation}`, a.postOffice && `PO: ${a.postOffice}`, a.postalCode, a.district, a.country]
+    .filter(Boolean)
+    .join(', ')
+}
+
 /**
  * Build multipart body expected by ClubPortalPublicController::apply.
  */
@@ -194,6 +201,12 @@ export function buildApplicationFormData(account: ApplicantAccount, form: Applic
   append(fd, 'profession', form.professional.profession)
   append(fd, 'designation', form.professional.designation)
   append(fd, 'company', form.professional.company)
+  {
+    const office = form.professional.address
+    if (office.address || office.policeStation || office.postOffice || office.district || office.postalCode) {
+      append(fd, 'office_address', joinAddress(office))
+    }
+  }
 
   append(fd, 'present_address', form.present.address)
   append(fd, 'police_station', form.present.policeStation)
@@ -204,7 +217,7 @@ export function buildApplicationFormData(account: ApplicantAccount, form: Applic
   append(
     fd,
     'permanent_address',
-    form.sameAsPresent ? form.present.address : form.permanent.address,
+    joinAddress(form.sameAsPresent ? form.present : form.permanent),
   )
 
   append(fd, 'membership_type_id', form.membership_type_id)
@@ -234,6 +247,10 @@ export function buildApplicationFormData(account: ApplicantAccount, form: Applic
     append(fd, 'nominees[0][occupation]', form.nominee.occupation)
     append(fd, 'nominees[0][phone]', form.nominee.phone)
     append(fd, 'nominees[0][share_percent]', '100')
+    if (form.nominee.photo) {
+      const nomineePhoto = dataUrlToFile(form.nominee.photo, 'nominee-photo')
+      if (nomineePhoto) fd.append('nominees[0][photo]', nomineePhoto)
+    }
   }
 
   form.otherClubs.forEach((c, i) => {

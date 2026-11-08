@@ -59,19 +59,19 @@ function useLinkProps() {
 }
 
 // ─── SECTION 1 — Hero ─────────────────────────────────────────────────────────
-const HERO_SIDE_SCALE = 0.88
+const HERO_SIDE_SCALE = 0.86
 const HERO_MIN_RATIO = 1.6
 const HERO_AUTOPLAY_MS = 5000
 
 // Three slides visible: the centred slide is the main picture, neighbours peek in at either side.
 // Same tripled-list loop as CommitteeCarouselMobile.
 function Hero() {
-  const { home, ready, fromApi, loading } = useHome()
+  const { home, ready, fromApi } = useHome()
   const linkProps = useLinkProps()
   const hero = home.hero
   // API only — no dummy slides when the request fails or returns empty.
   const slides =
-    fromApi
+    ready && fromApi
       ? hero.slides.map((s) => ({ src: s.image, alt: s.alt || hero.heading || 'Club' }))
       : []
   const len = slides.length
@@ -91,24 +91,18 @@ function Hero() {
     setActive(len)
   }, [len])
 
-  // Measure as soon as the viewport exists (including loading placeholders).
+  // Measure after the carousel DOM exists. (Early loading return skips the viewport,
+  // so this must re-run when ready/len change — otherwise vw stays at the 1200 default
+  // and the active slide is not centred.)
   useLayoutEffect(() => {
+    if (!ready || !len) return
     const el = viewportRef.current
     if (!el) return
     setVw(el.clientWidth)
     const ro = new ResizeObserver(([entry]) => setVw(entry.contentRect.width))
     ro.observe(el)
     return () => ro.disconnect()
-  }, [len, loading, ready])
-
-  // Warm the browser cache for the first few slides so the carousel never paints empty.
-  useEffect(() => {
-    slides.slice(0, 3).forEach((s) => {
-      if (!s.src) return
-      const img = new Image()
-      img.src = s.src
-    })
-  }, [slides])
+  }, [ready, len])
 
   useEffect(() => {
     if (paused || len < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -132,30 +126,28 @@ function Hero() {
     }
   }
 
-  // Narrower main slide → room for BOTH side peeks inside the viewport (old 0.64 pushed the right slide off-screen).
+  // Mobile: main slide takes most of the width; tablet: ~76%; desktop: ~64% so both neighbours show clearly
   const mobile = vw < 768
   const tablet = !mobile && vw < 1024
-  const slideRatio = mobile ? 0.82 : tablet ? 0.62 : 0.52
-  const slideW = Math.max(1, Math.round(vw * slideRatio))
+  const slideRatio = mobile ? 0.88 : tablet ? 0.76 : 0.64
+  const slideW = Math.round(vw * slideRatio)
   // Tablet/desktop: never taller than 1.6:1 (the photos' own shape), so slides stay landscape on tall screens
   const maxSlideH = mobile ? undefined : Math.round(slideW / HERO_MIN_RATIO)
   // Arrows sit on the main slide's edges
   const arrowInset = `calc(${((1 - slideRatio) / 2) * 100}% - 24px)`
-  const gap = mobile ? 10 : 16
-  // Centres of neighbours = half(main + scaled side) + gap so scaled peeks stay on-screen.
+  const gap = mobile ? 10 : 20
   const step = slideW * (1 + HERO_SIDE_SCALE) / 2 + gap
-  const showPlaceholders = !ready || (loading && !len)
-  const hideHero = ready && fromApi && !len && !hasCopy
-  // While loading, centre the middle of three skeleton cards (index 1).
-  const trackActive = showPlaceholders ? 1 : active
-  const offset = vw / 2 - slideW / 2 - trackActive * step
+  const offset = vw / 2 - slideW / 2 - active * step
   const ease = 'cubic-bezier(.22,1,.36,1)'
   const transition = animate ? `transform 700ms ${ease}, opacity 700ms` : 'none'
 
-  if (hideHero) return null
+  if (!ready) {
+    return <section id="home" className="hero-stage" style={{ background: '#0E1116', minHeight: 320 }} aria-busy="true" />
+  }
+  if (!fromApi || (!len && !hasCopy)) return null
 
   return (
-    <section id="home" className="hero-stage" aria-busy={showPlaceholders || undefined}>
+    <section id="home" className="hero-stage">
       <style>{`
         /* Whole hero fits one screen: the carousel flexes to fill what the nav, dots and copy leave */
         .hero-stage { background:#0E1116; height:100vh; height:100svh; min-height:560px; display:flex; flex-direction:column; padding:104px 0 88px; }
@@ -180,11 +172,11 @@ function Hero() {
           .hero-stage { padding-top:116px; }
           /* Carousel takes its capped height and only shrinks when the screen is short */
           .hero-viewport { flex:0 1 auto; }
-          /* Full-bleed track; soft edge fade only (hard 12% fade hid the right peek) */
+          /* Full-bleed track; side slides fade out at the edges like the committee marquee */
           .hero-frame { max-width:none; }
           .hero-viewport {
-            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 3%, #000 97%, transparent 100%);
-                    mask-image: linear-gradient(to right, transparent 0, #000 3%, #000 97%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+                    mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
           }
           .hero-copy { grid-template-columns:1.1fr 1fr; align-items:end; gap:48px; padding:28px clamp(24px,5vw,80px) 0; }
           .hero-copy h1 { font-size:clamp(32px, min(4.2vw, 6.4vh), 64px) !important; margin-bottom:0 !important; }
@@ -204,15 +196,13 @@ function Hero() {
         }
         .hero-arrow { position:absolute; top:50%; z-index:4; width:48px; height:48px; margin-top:-24px; border-radius:999px; border:1.5px solid rgba(255,255,255,0.45); background:rgba(14,17,22,0.35); backdrop-filter:blur(12px); color:#fff; cursor:pointer; align-items:center; justify-content:center; transition:background 200ms, border-color 200ms, transform 180ms ${ease}; }
         .hero-arrow:hover { background:rgba(225,11,23,0.9); border-color:#E10B17; transform:scale(1.06); }
-        .hero-skel { background:linear-gradient(90deg,#171b22 0%,#222833 45%,#171b22 100%); background-size:200% 100%; animation:heroShimmer 1.2s ease-in-out infinite; }
-        @keyframes heroShimmer { 0% { background-position:100% 0 } 100% { background-position:-100% 0 } }
       `}</style>
 
       <div className="hero-frame">
         <div
           ref={viewportRef}
           className="hero-viewport"
-          style={{ height: maxSlideH || (mobile ? undefined : Math.round((vw * 0.52) / HERO_MIN_RATIO)), maxHeight: maxSlideH }}
+          style={{ height: maxSlideH, maxHeight: maxSlideH }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
@@ -230,28 +220,8 @@ function Hero() {
             onTransitionEnd={onTrackTransitionEnd}
             style={{ position: 'absolute', inset: 0, transform: `translateX(${offset}px)`, transition: animate ? `transform 700ms ${ease}` : 'none' }}
           >
-            {showPlaceholders
-              ? [0, 1, 2].map((i) => {
-                  const isActive = i === 1
-                  return (
-                    <div
-                      key={`skel-${i}`}
-                      className="absolute top-0 overflow-hidden hero-skel"
-                      style={{
-                        left: i * step,
-                        width: slideW,
-                        height: '100%',
-                        borderRadius: mobile ? 22 : 24,
-                        transform: `scale(${isActive ? 1 : HERO_SIDE_SCALE})`,
-                        opacity: isActive ? 1 : 0.78,
-                        zIndex: isActive ? 2 : 1,
-                      }}
-                    />
-                  )
-                })
-              : items.map((s, i) => {
+            {items.map((s, i) => {
               const isActive = i === active
-              const near = Math.abs(i - active) <= 1
               return (
                 <div
                   key={i}
@@ -261,7 +231,7 @@ function Hero() {
                   style={{
                     left: i * step, width: slideW, height: '100%', borderRadius: mobile ? 22 : 24,
                     transform: `scale(${isActive ? 1 : HERO_SIDE_SCALE})`,
-                    opacity: isActive ? 1 : 0.78,
+                    opacity: isActive ? 1 : 0.5,
                     cursor: isActive ? 'default' : 'pointer',
                     zIndex: isActive ? 2 : 1,
                     transition,
@@ -271,9 +241,7 @@ function Hero() {
                   <img
                     src={s.src}
                     alt={s.alt}
-                    loading={near ? 'eager' : 'lazy'}
-                    decoding={near ? 'sync' : 'async'}
-                    fetchPriority={isActive ? 'high' : near ? 'high' : 'auto'}
+                    loading={Math.abs(i - active) <= 1 ? 'eager' : 'lazy'}
                     className="w-full h-full object-cover"
                     style={{ transform: 'scale(1.1)' }}
                   />
@@ -285,16 +253,12 @@ function Hero() {
           </div>
 
           {/* Arrows — desktop, over the side slides */}
-          {len > 1 ? (
-            <>
           <button className="hero-arrow hidden md:flex" aria-label="Previous slide" onClick={() => setActive((a) => a - 1)} style={{ left: arrowInset }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>
           </button>
           <button className="hero-arrow hidden md:flex" aria-label="Next slide" onClick={() => setActive((a) => a + 1)} style={{ right: arrowInset }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
           </button>
-            </>
-          ) : null}
         </div>
 
         {/* Position dots */}
