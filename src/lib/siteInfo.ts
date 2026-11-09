@@ -1,3 +1,4 @@
+import { mediaUrl } from './api/client'
 import { useApi } from './useApi'
 import type { WebsiteSiteInfoRaw } from './api/website'
 
@@ -101,8 +102,21 @@ export const DEFAULT_SITE = EMPTY_SITE
 
 function mapSiteInfo(raw: WebsiteSiteInfoRaw | null | undefined): SiteInfo | null {
   if (!raw || typeof raw !== 'object') return null
-  // Treat a completely empty payload as "no site info yet"
-  if (!raw.club_name && !raw.phone && !raw.email && !raw.address) return null
+  // Only treat as empty when nothing useful was saved — logo alone must still count
+  // (staff often upload the logo before filling name / contact).
+  const hasAnything = Boolean(
+    raw.club_name ||
+      raw.short_name ||
+      raw.phone ||
+      raw.email ||
+      raw.address ||
+      raw.logo ||
+      raw.favicon ||
+      raw.share_image ||
+      raw.tagline ||
+      raw.about_text,
+  )
+  if (!hasAnything) return null
 
   const phone = raw.phone ?? null
   const phoneAlt = raw.phone_alt ?? null
@@ -123,9 +137,9 @@ function mapSiteInfo(raw: WebsiteSiteInfoRaw | null | undefined): SiteInfo | nul
     trade_license: raw.trade_license ?? null,
     govt_reg_no: raw.govt_reg_no ?? null,
     helpdesk_reply_note: raw.helpdesk_reply_note ?? null,
-    logo: raw.logo ?? null,
-    favicon: raw.favicon ?? null,
-    og_image: raw.share_image ?? null,
+    logo: mediaUrl(raw.logo) || null,
+    favicon: mediaUrl(raw.favicon) || null,
+    og_image: mediaUrl(raw.share_image) || null,
     contact: {
       phone,
       phone_alt: phoneAlt,
