@@ -237,13 +237,11 @@ function Hero() {
                     transition,
                   }}
                 >
-                  {/* Slightly zoomed in */}
                   <img
                     src={s.src}
                     alt={s.alt}
                     loading={Math.abs(i - active) <= 1 ? 'eager' : 'lazy'}
                     className="w-full h-full object-cover"
-                    style={{ transform: 'scale(1.1)' }}
                   />
                   {/* Light bottom scrim to seat the image on the dark stage */}
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(14,17,22,0.35) 0%, transparent 40%)' }}/>
