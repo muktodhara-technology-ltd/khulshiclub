@@ -1142,10 +1142,10 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     }
   }
 
-  // Centre card ~62% of viewport; neighbours overlap behind it
-  const cardW = Math.min(260, Math.round(vw * 0.62))
+  // Centre card ~58% of viewport; neighbours sit further out (less tucked under centre)
+  const cardW = Math.min(250, Math.round(vw * 0.58))
   const cardH = Math.round(cardW * 1.35)
-  const step = Math.round(cardW * 0.52)
+  const step = Math.round(cardW * 0.7)
   const offset = vw / 2 - cardW / 2 - active * step
   const transition = animate ? `transform 650ms ${CF_EASE}, opacity 650ms, box-shadow 650ms` : 'none'
 
@@ -1251,10 +1251,10 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
     return r > n / 2 ? r - n : r
   }
 
-  // One hero card in the middle; neighbours stack smaller behind (like the brand carousel)
-  const cardW = Math.min(340, Math.max(260, Math.round(vw * 0.28)))
+  // One hero card in the middle; neighbours peek beside it — not tucked too far under
+  const cardW = Math.min(320, Math.max(250, Math.round(vw * 0.26)))
   const cardH = Math.round(cardW * 1.32)
-  const peek = Math.round(cardW * 0.55)
+  const peek = Math.round(cardW * 0.78)
   const delta = active - prevActive.current
 
   return (
