@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { applicantName, formCompletion, type ApplicantRecord } from '../data/application'
 import { applicationFeeRows, fetchApplicationStatus, usePortalClubSettings } from '../lib/apply'
 import { pathForPage } from '../lib/routing'
+import { SITE_W } from '../lib/layout'
 
 // ─── Applicant dashboard ──────────────────────────────────────────────────────
 // A slimmer version of the member portal for people applying to join:
@@ -494,7 +495,7 @@ export default function ApplicantDashboard({
   }, [record.status, record.reference, record.form.personal.phone, record.account.mobile]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(20px,3vw,40px) clamp(16px,4vw,48px) 0' }}>
+    <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(20px,3vw,40px) clamp(16px,4vw,48px) 0' }}>
       {/* Bottom tab bar replaces the sidebar below 1024px; keep the page and the form's step bar clear of it */}
       <style>{`
         @media (min-width:1024px) { #applicant-tab-bar { display:none !important; } }

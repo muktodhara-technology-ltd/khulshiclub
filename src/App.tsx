@@ -18,6 +18,7 @@ import { useAlbums, useNotices, useNewsList, useVideos } from './lib/media'
 import { useMemberSession } from './lib/memberSession'
 import { portalLogout } from './lib/portal'
 import { readRoute, readSearchQuery, syncUrl, type MediaTab as RouteMediaTab, type PortalTab, type RoutedPage } from './lib/routing'
+import { SITE_W } from './lib/layout'
 import SearchOverlay from './components/SearchOverlay'
 import PersonPortrait from './components/PersonPortrait'
 
@@ -155,7 +156,7 @@ function Hero() {
         .hero-frame { flex:1; min-height:0; width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:center; }
         .hero-viewport { position:relative; overflow:hidden; flex:1; min-height:180px; touch-action:pan-y; }
         .hero-dots { margin-top:14px; }
-        .hero-copy { flex:none; display:grid; width:100%; max-width:1280px; margin:0 auto; padding:18px 20px 0; }
+        .hero-copy { flex:none; display:grid; width:100%; max-width:${SITE_W}px; margin:0 auto; padding:18px 20px 0; }
         .hero-copy .eyebrow { margin-bottom:12px !important; }
         .hero-copy h1 { font-size:clamp(28px, 8vw, 36px) !important; margin-bottom:12px !important; }
         .hero-copy p { font-size:14px !important; margin-bottom:18px !important; }
@@ -343,7 +344,7 @@ function Hero() {
 
 // Homepage content sections: wider column, and white / pale-grey backgrounds alternating
 // Governance · News (alt) · Membership · Facilities (alt) · Gallery · About (alt)
-const HOME_W = 1560
+const HOME_W = SITE_W
 const HOME_BG_ALT = '#F3F5F8'
 
 // ─── SECTION 2 — About ────────────────────────────────────────────────────────
@@ -1364,7 +1365,7 @@ function MembershipCTA() {
         <div className="absolute inset-0" style={{ background: 'rgba(14,17,22,0.65)' }}/>
       </div>
 
-      <div className="relative z-10" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 clamp(24px,5vw,80px)', textAlign: 'center' }}>
+      <div className="relative z-10" style={{ maxWidth: HOME_W, margin: '0 auto', padding: '0 clamp(24px,5vw,80px)', textAlign: 'center' }}>
         {m.eyebrow && <div className="eyebrow mb-4" style={{ color: '#B98B43' }}>{m.eyebrow}</div>}
         <h2 style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 'clamp(36px,4.5vw,64px)', color: '#FFFFFF', lineHeight: 1.05, letterSpacing: '-0.02em', marginBottom: 16 }}>
           <Lines text={m.heading}/>

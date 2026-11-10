@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSiteInfo, officeLine } from '../lib/siteInfo'
+import { SITE_W } from '../lib/layout'
 import ClubLogo from './ClubLogo'
 
 // Text tones on the dark footer — kept readable (WCAG AA on #0E1116)
@@ -217,7 +218,7 @@ const MEMBER_LINKS = [
   { label: 'Refund & Return Policy', href: '#' },
 ]
 
-export default function Footer({ maxWidth = 1280 }: { maxWidth?: number }) {
+export default function Footer({ maxWidth = SITE_W }: { maxWidth?: number }) {
   const site = useSiteInfo()
   const PHONES = site.contact.phones
   const MAPS_URL = site.address.map_url ?? '#'

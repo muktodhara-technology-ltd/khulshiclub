@@ -4,6 +4,7 @@ import type { CommitteePageType } from './CommitteePage'
 import { useSiteInfo } from '../lib/siteInfo'
 import ClubLogo from './ClubLogo'
 import { pathForPage, type RoutedPage } from '../lib/routing'
+import { SITE_W } from '../lib/layout'
 
 function hrefForPage(page: string) {
   try {
@@ -163,7 +164,7 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
         className="fixed z-50 left-1/2 -translate-x-1/2"
         style={{
           top: scrolled ? 12 : 20,
-          width: scrolled ? 'min(1080px, calc(100vw - 40px))' : 'min(1280px, calc(100vw - 40px))',
+          width: scrolled ? 'min(1080px, calc(100vw - 40px))' : `min(${SITE_W}px, calc(100vw - 40px))`,
           height: scrolled ? 58 : 72,
           transition: 'all 240ms ease-out',
         }}

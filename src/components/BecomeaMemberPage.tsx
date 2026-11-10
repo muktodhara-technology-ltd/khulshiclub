@@ -20,6 +20,7 @@ import {
   type PortalMembershipType,
   type PortalProposer,
 } from '../lib/apply'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -1492,7 +1493,7 @@ function RegisterSection({ onAuthed }: { onAuthed: (r: ApplicantRecord) => void 
   const club = useClubNames()
   const [loginOpen, setLoginOpen] = useState(false)
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(32px,5vw,64px) clamp(24px,5vw,80px)' }}>
+    <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(32px,5vw,64px) clamp(24px,5vw,80px)' }}>
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-10 lg:gap-14 items-start">
         <div>
           <div className="eyebrow" style={{ fontSize: 11, color: T.brass, marginBottom: 10 }}>HOW IT WORKS</div>
@@ -1532,8 +1533,8 @@ function PageHeader({ compact }: { compact?: boolean }) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
-        // Align with the 1280px content column, like the Media & Resources headers
-        paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))',
+        // Align with the site content column, like the Media & Resources headers
+        paddingInline: SITE_HEADER_PAD_INLINE,
         paddingBottom: compact ? 28 : 40,
       }}
     >

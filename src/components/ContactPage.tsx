@@ -3,6 +3,7 @@ import Footer from './Footer'
 import { ApiError, postWebsiteContact } from '../lib/api'
 import { useContactFaqs } from '../lib/contactFaqs'
 import { useSiteInfo } from '../lib/siteInfo'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 const T = {
   ink900: '#0E1116', ink600: '#2A3039', ink400: '#5C6673', ink200: '#A8B0BB', ink100: '#E2E6EC',
@@ -459,7 +460,7 @@ function ContactFAQ() {
 // ─── Page header ──────────────────────────────────────────────────────────────
 function PageHeader() {
   return (
-    <div style={{ minHeight: 'clamp(200px, 28vw, 320px)', background: T.surface100, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBlock: 'clamp(24px,5vw,80px)', paddingTop: 108, paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))', paddingBottom: 40 }}>
+    <div style={{ minHeight: 'clamp(200px, 28vw, 320px)', background: T.surface100, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBlock: 'clamp(24px,5vw,80px)', paddingTop: 108, paddingInline: SITE_HEADER_PAD_INLINE, paddingBottom: 40 }}>
       <div style={{ position: 'absolute', top: '-10%', right: '5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(225,11,23,0.09) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
       <div className="flex items-center gap-1.5 mb-3" style={{ position: 'relative', zIndex: 1 }}>
         {['Home', 'Contact Us'].map((c, i, arr) => (
@@ -479,7 +480,7 @@ export default function ContactPage() {
   return (
     <div style={{ background: T.surface50, minHeight: '100vh' }}>
       <PageHeader />
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
         {/* Two columns */}
         <div className="grid lg:grid-cols-[420px_1fr] gap-8 mb-12">
           <ContactCard />

@@ -7,8 +7,9 @@ import {
   type HomeCustomSection,
   type HomeSectionAlign,
 } from '../lib/home'
+import { SITE_W } from '../lib/layout'
 
-const HOME_W = 1560
+const HOME_W = SITE_W
 const HOME_BG_ALT = '#F3F5F8'
 const GOLD = '#B98B43'
 const INK = '#0E1116'

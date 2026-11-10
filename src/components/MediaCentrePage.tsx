@@ -14,6 +14,7 @@ import {
   type Article,
   type VideoEntry,
 } from '../lib/media'
+import { SITE_W } from '../lib/layout'
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const T = {
@@ -94,7 +95,7 @@ function PageHeader({ activeTab, onTab }: { activeTab: MediaTab; onTab: (t: Medi
       <div style={{ position: 'absolute', top: '-10%', right: '5%', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle,rgba(225,11,23,0.09) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
       <div
         style={{
-          maxWidth: 1280, margin: '0 auto', width: '100%', boxSizing: 'border-box',
+          maxWidth: SITE_W, margin: '0 auto', width: '100%', boxSizing: 'border-box',
           padding: '108px clamp(24px,5vw,80px) 0', // top clears the floating navbar on phones
           position: 'relative', zIndex: 1,
         }}
@@ -860,7 +861,7 @@ export default function MediaCentrePage({ initialTab = 'notices' }: { initialTab
 
       <div
         ref={contentRef}
-        style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}
+        style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}
       >
         {tab === 'notices' && <NoticesSection />}
         {tab === 'news'    && <NewsSection />}

@@ -4,6 +4,7 @@ import SubTabs from './SubTabs'
 import SideNavCard from './SideNav'
 import PersonPortrait from './PersonPortrait'
 import { useAbout } from '../lib/about'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 // ─── Member data ──────────────────────────────────────────────────────────────
 type MemberTier = 'Office Bearer' | 'Member'
@@ -277,8 +278,8 @@ function PageHeader({ title, breadcrumb, tabs }: { title: string; breadcrumb: st
         flexDirection: 'column',
         justifyContent: 'flex-end',
         paddingTop: 108, // clears the floating navbar (20px offset + 72px bar) on phones
-        // Align with the 1280px content column, like the Media & Resources headers
-        paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))',
+        // Align with the site content column, like the Media & Resources headers
+        paddingInline: SITE_HEADER_PAD_INLINE,
       }}
     >
       <div style={{ position: 'absolute', top: '-10%', right: '5%', width: 440, height: 440, borderRadius: '50%', background: 'radial-gradient(circle, rgba(242,51,61,0.10) 0%, transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
@@ -380,7 +381,7 @@ export default function CommitteePage({
       {/* Two-column body, same as the About pages */}
       <div
         style={{
-          maxWidth: 1280,
+          maxWidth: SITE_W,
           margin: '0 auto',
           padding: '0 clamp(24px,5vw,80px)',
           display: 'flex',

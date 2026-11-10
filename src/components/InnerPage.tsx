@@ -16,6 +16,7 @@ import {
   membershipPageAnchors,
   useMembership,
 } from '../lib/membership'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 // ─── Sibling page definitions ─────────────────────────────────────────────────
 export type PageId =
@@ -81,8 +82,8 @@ function PageHeader({
         flexDirection: 'column',
         justifyContent: 'flex-end',
         paddingTop: 108, // clears the floating navbar (20px offset + 72px bar) on phones
-        // Align with the 1280px content column, like the Media & Resources headers
-        paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))',
+        // Align with the site content column, like the Media & Resources headers
+        paddingInline: SITE_HEADER_PAD_INLINE,
       }}
     >
       {/* Radial glows */}
@@ -675,7 +676,7 @@ export default function InnerPage({
 
       <div
         style={{
-          maxWidth: 1280,
+          maxWidth: SITE_W,
           margin: '0 auto',
           padding: '0 clamp(24px,5vw,80px)',
           display: 'flex',

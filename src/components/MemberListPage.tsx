@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import Footer from './Footer'
 import { useDirectoryList, type DirectoryMember } from '../lib/directory'
 import { useSiteInfo } from '../lib/siteInfo'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 export type MemberTier = string
 export type Member = {
@@ -468,8 +469,8 @@ function PageHeader() {
         justifyContent: 'flex-end',
         paddingBlock: 'clamp(24px,5vw,80px)',
         paddingTop: 108, // clears the floating navbar (20px offset + 72px bar) on phones
-        // Align with the 1280px content column, like the Media & Resources headers
-        paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))',
+        // Align with the site content column, like the Media & Resources headers
+        paddingInline: SITE_HEADER_PAD_INLINE,
         paddingBottom: 40,
       }}
     >
@@ -567,7 +568,7 @@ function FilterBar({
         borderBottom: '1px solid rgba(226,230,236,0.60)',
       }}
     >
-      <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
         {/* Search */}
         <div
           style={{
@@ -799,7 +800,7 @@ export default function MemberListPage() {
         companyOptions={COMPANY_OPTIONS}
       />
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
         {error && (
           <div style={{ marginBottom: 16, fontFamily: 'CKCL', fontSize: 13, color: '#E10B17' }}>{error}</div>
         )}

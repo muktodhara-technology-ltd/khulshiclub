@@ -10,6 +10,7 @@ import {
   useFacilitiesList,
   useFacilityDetail,
 } from '../lib/facilities'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 export type FacilityId = string
 
@@ -28,7 +29,7 @@ function PageHeader({ title, breadcrumb }: { title: string; breadcrumb: string[]
         justifyContent: 'flex-end',
         paddingBlock: 'clamp(24px,5vw,80px)',
         paddingTop: 108,
-        paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))',
+        paddingInline: SITE_HEADER_PAD_INLINE,
         paddingBottom: 40,
       }}
     >
@@ -154,7 +155,7 @@ function FacilitiesOverview({ onSelectFacility }: { onSelectFacility: (id: Facil
     <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
       <PageHeader title={intro.title || 'Facilities'} breadcrumb={['Home', 'Facilities']} />
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
         {(intro.para1 || intro.para2) ? (
           <div className="grid lg:grid-cols-2 gap-8 mb-14">
             {intro.para1 ? (
@@ -318,7 +319,7 @@ function OtherFacilitiesRail({
   if (!others.length) return null
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(48px,5vw,72px) clamp(24px,5vw,80px)' }}>
+    <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(48px,5vw,72px) clamp(24px,5vw,80px)' }}>
       <div className="flex items-center justify-between mb-8">
         <h2 style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 26, color: '#0E1116', margin: 0, letterSpacing: '-0.01em' }}>Other Facilities</h2>
         <div className="hidden sm:flex gap-2">
@@ -461,7 +462,7 @@ function FacilityDetailPage({
         ) : null}
       </div>
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 clamp(24px,5vw,80px)', paddingTop: data.quickFacts.length ? 'clamp(80px,10vw,120px)' : 'clamp(40px,6vw,64px)' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: '0 clamp(24px,5vw,80px)', paddingTop: data.quickFacts.length ? 'clamp(80px,10vw,120px)' : 'clamp(40px,6vw,64px)' }}>
         <div className="flex gap-12 items-start">
           <div style={{ flex: 1, minWidth: 0, maxWidth: 720 }}>
             <div className="eyebrow mb-3" style={{ color: '#B98B43', fontSize: 10 }}>Facilities</div>

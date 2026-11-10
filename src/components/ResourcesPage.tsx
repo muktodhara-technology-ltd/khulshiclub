@@ -19,6 +19,7 @@ import {
   type DuesMemberHit,
   type DuesPayAccount,
 } from '../lib/dues'
+import { SITE_W } from '../lib/layout'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -1478,7 +1479,7 @@ function PageHeader({ tab, onTab }: { tab: ResourceTab; onTab: (t: ResourceTab) 
   return (
     <div style={{ minHeight: 'clamp(200px, 28vw, 320px)', background: T.surface100, position: 'relative', overflow: 'hidden', paddingBottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       <div style={{ position: 'absolute', top: '-10%', right: '5%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle,rgba(225,11,23,0.09) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-      <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%', boxSizing: 'border-box', padding: '108px clamp(24px,5vw,80px) 0', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', width: '100%', boxSizing: 'border-box', padding: '108px clamp(24px,5vw,80px) 0', position: 'relative', zIndex: 1 }}>
         <div className="flex items-center gap-1.5 mb-3">
           {['Home', 'Resources'].map((c, i, arr) => (
             <span key={i} className="flex items-center gap-1.5">
@@ -1513,7 +1514,7 @@ export default function ResourcesPage() {
     <div style={{ background: T.surface50, minHeight: '100vh' }}>
       <PageHeader tab={tab} onTab={setTab} />
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
         {tab === 'reports' && <ReportsSection />}
         {tab === 'dues'    && <DuesGate access={duesAccess} onAccess={setDuesAccess} />}
       </div>

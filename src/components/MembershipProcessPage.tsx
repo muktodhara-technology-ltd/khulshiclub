@@ -3,6 +3,7 @@ import Footer from './Footer'
 import { useMembership, type MembershipProcess, type MembershipTier } from '../lib/membership'
 import { useSiteInfo } from '../lib/siteInfo'
 import { usePortalClubSettings, type PortalMembershipType } from '../lib/apply'
+import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 // ─── Live content (Admin → Membership → Membership Process) ───────────────────
 type ProcessData = MembershipProcess
@@ -52,8 +53,8 @@ function PageHeader({ title }: { title?: string }) {
         justifyContent: 'flex-end',
         paddingBlock: 'clamp(24px,5vw,80px)',
         paddingTop: 108, // clears the floating navbar (20px offset + 72px bar) on phones
-        // Align with the 1280px content column, like the Media & Resources headers
-        paddingInline: 'max(clamp(24px,5vw,80px), calc((100% - 1280px) / 2 + clamp(24px,5vw,80px)))',
+        // Align with the site content column, like the Media & Resources headers
+        paddingInline: SITE_HEADER_PAD_INLINE,
         paddingBottom: 40,
       }}
     >
@@ -683,7 +684,7 @@ export default function MembershipProcessPage({ onApply }: { onApply?: () => voi
     return (
       <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
         <PageHeader />
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
+        <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
           {[100, 94, 70, 0, 100, 88].map((w, i) => (
             <div key={i} style={{ height: w ? 14 : 28, width: `${w}%`, maxWidth: 760, background: w ? '#EEF1F5' : 'transparent', borderRadius: 6, marginBottom: 14 }} />
           ))}
@@ -696,7 +697,7 @@ export default function MembershipProcessPage({ onApply }: { onApply?: () => voi
     return (
       <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
         <PageHeader />
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
+        <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
           <p style={{ fontFamily: 'CKCL', fontSize: 16, color: error ? '#E10B17' : '#5C6673', lineHeight: 1.6 }}>
             {error
               ? 'Could not load membership process.'
@@ -714,7 +715,7 @@ export default function MembershipProcessPage({ onApply }: { onApply?: () => voi
     <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
       <PageHeader title={process.page_title} />
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
+      <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(48px,6vw,80px) clamp(24px,5vw,80px)' }}>
 
         {/* Intro */}
         <div className="grid lg:grid-cols-2 gap-8 mb-16">
