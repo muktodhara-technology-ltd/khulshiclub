@@ -153,8 +153,8 @@ function Hero() {
       <style>{`
         /* Whole hero fits one screen; carousel keeps exact 16:10 (1600×1000) on all breakpoints */
         .hero-stage { background:#0E1116; height:100vh; height:100svh; min-height:560px; display:flex; flex-direction:column; padding:104px 0 88px; }
-        /* Centred so any height the capped carousel leaves is shared above and below */
-        .hero-frame { flex:1; min-height:0; width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:center; }
+        /* Sit directly under the floating navbar — do not vertically centre (that left a gap) */
+        .hero-frame { flex:1; min-height:0; width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:flex-start; }
         .hero-viewport { position:relative; overflow:hidden; flex:0 0 auto; min-height:0; touch-action:pan-y; }
         /* Phones: size stage to content so the fixed 16:10 slide is not squeezed */
         @media (max-width:767px) {
@@ -175,11 +175,12 @@ function Hero() {
           .hero-copy p { font-size:13.5px !important; line-height:1.5 !important; }
         }
         @media (min-width:768px) {
-          .hero-stage { padding-top:116px; }
+          /* Navbar top 20 + bar 72 + small gap — keep hero tight under the header */
+          .hero-stage { padding-top:100px; padding-bottom:28px; }
           /* Keep exact 16:10 — never flex-shrink the carousel height */
           .hero-viewport { flex:0 0 auto; }
           /* Full-bleed track; side slides fade out at the edges like the committee marquee */
-          .hero-frame { max-width:none; }
+          .hero-frame { max-width:none; justify-content:flex-start; }
           .hero-viewport {
             -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
                     mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
