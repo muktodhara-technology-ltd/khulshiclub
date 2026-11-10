@@ -1174,6 +1174,8 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
       >
         {items.map((m, i) => {
           const dist = i - active
+          // Show 5 cards: centre + 2 each side
+          if (Math.abs(dist) > 2) return null
           const isActive = dist === 0
           const scale = coverflowScale(dist)
           return (
@@ -1272,7 +1274,8 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
       >
         {items.map((m, i) => {
           const slot = slotOf(i, active)
-          if (Math.abs(slot) > 4) return null
+          // Show 5 cards: centre + 2 each side
+          if (Math.abs(slot) > 2) return null
           const wrapped = slotOf(i, prevActive.current) - delta !== slot
           const isActive = slot === 0
           const scale = coverflowScale(slot)
