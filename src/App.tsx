@@ -969,9 +969,8 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
 // Card data shared by the committee and member-directory showcases
 type ShowcasePerson = { name: string; role: string; company: string; img: string | null }
 
-/** ILLIYEEN-style carousel chrome: ◀  ──●──  ▶  (no section background). */
+/** Committee carousel chrome: ◀  ▶ only. */
 function CarouselScrollBar({
-  index,
   count,
   onPrev,
   onNext,
@@ -982,9 +981,6 @@ function CarouselScrollBar({
   onNext: () => void
 }) {
   if (count <= 1) return null
-  const i = ((index % count) + count) % count
-  const thumbPct = Math.min(42, Math.max(22, 100 / count))
-  const leftPct = (i / (count - 1)) * (100 - thumbPct)
   const btn: React.CSSProperties = {
     width: 44,
     height: 44,
@@ -1005,7 +1001,7 @@ function CarouselScrollBar({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 22,
+        gap: 16,
         marginTop: 28,
         padding: '0 16px',
       }}
@@ -1026,31 +1022,6 @@ function CarouselScrollBar({
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <div
-        aria-hidden
-        style={{
-          position: 'relative',
-          width: 'min(180px, 32vw)',
-          height: 1.5,
-          borderRadius: 999,
-          background: '#C8CED6',
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: `${leftPct}%`,
-            width: `${thumbPct}%`,
-            height: 5,
-            marginTop: -2.5,
-            borderRadius: 999,
-            background: '#0E1116',
-            transition: 'left 450ms cubic-bezier(.22,1,.36,1)',
-          }}
-        />
-      </div>
       <button
         type="button"
         aria-label="Next"
@@ -1209,7 +1180,7 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
                 width: cardW,
                 height: cardH,
                 top: Math.round((cardH * 1.08 - cardH) / 2),
-                borderRadius: 18,
+                borderRadius: 0,
                 background: '#EEF1F5',
                 border: isActive ? '1px solid rgba(14,17,22,0.12)' : '1px solid rgba(14,17,22,0.06)',
                 transform: `scale(${scale})`,
@@ -1231,7 +1202,7 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
                     position: 'absolute',
                     inset: 0,
                     pointerEvents: 'none',
-                    borderRadius: 18,
+                    borderRadius: 0,
                     background: 'rgba(14,17,22,0.34)',
                     backdropFilter: 'blur(2.5px)',
                     WebkitBackdropFilter: 'blur(2.5px)',
@@ -1355,7 +1326,7 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
         <div
           className="committee-card relative overflow-hidden w-full h-full"
           style={{
-            borderRadius: 18,
+            borderRadius: 0,
             background: '#EEF1F5',
             border: isActive ? '1px solid rgba(14,17,22,0.14)' : '1px solid rgba(14,17,22,0.06)',
             boxShadow: isActive
@@ -1371,7 +1342,7 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
                 position: 'absolute',
                 inset: 0,
                 pointerEvents: 'none',
-                borderRadius: 18,
+                borderRadius: 0,
                 background: slot < 0
                   ? 'linear-gradient(to left, rgba(14,17,22,0.42) 0%, rgba(14,17,22,0.14) 40%, rgba(14,17,22,0.02) 75%, transparent 100%)'
                   : 'linear-gradient(to right, rgba(14,17,22,0.42) 0%, rgba(14,17,22,0.14) 40%, rgba(14,17,22,0.02) 75%, transparent 100%)',
