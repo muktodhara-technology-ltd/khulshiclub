@@ -151,11 +151,15 @@ function Hero() {
   return (
     <section id="home" className="hero-stage">
       <style>{`
-        /* Whole hero fits one screen: the carousel flexes to fill what the nav, dots and copy leave */
+        /* Whole hero fits one screen; carousel keeps exact 16:10 (1600×1000) on all breakpoints */
         .hero-stage { background:#0E1116; height:100vh; height:100svh; min-height:560px; display:flex; flex-direction:column; padding:104px 0 88px; }
         /* Centred so any height the capped carousel leaves is shared above and below */
         .hero-frame { flex:1; min-height:0; width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:center; }
-        .hero-viewport { position:relative; overflow:hidden; flex:1; min-height:180px; touch-action:pan-y; }
+        .hero-viewport { position:relative; overflow:hidden; flex:0 0 auto; min-height:0; touch-action:pan-y; }
+        /* Phones: size stage to content so the fixed 16:10 slide is not squeezed */
+        @media (max-width:767px) {
+          .hero-stage { height:auto; min-height:0; padding-bottom:48px; }
+        }
         .hero-dots { margin-top:14px; }
         .hero-copy { flex:none; display:grid; width:100%; max-width:${SITE_W}px; margin:0 auto; padding:18px 20px 0; }
         .hero-copy .eyebrow { margin-bottom:12px !important; }
@@ -204,16 +208,12 @@ function Hero() {
         <div
           ref={viewportRef}
           className="hero-viewport"
-          style={
-            mobile
-              ? undefined
-              : {
-                  width: '100%',
-                  height: slideH,
-                  aspectRatio: `${HERO_RATIO}`,
-                  flex: '0 0 auto',
-                }
-          }
+          style={{
+            width: '100%',
+            height: slideH,
+            aspectRatio: `${HERO_RATIO}`,
+            flex: '0 0 auto',
+          }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
@@ -242,8 +242,8 @@ function Hero() {
                   style={{
                     left: i * step,
                     width: slideW,
-                    height: mobile ? '100%' : slideH,
-                    aspectRatio: mobile ? undefined : `${HERO_RATIO}`,
+                    height: slideH,
+                    aspectRatio: `${HERO_RATIO}`,
                     borderRadius: mobile ? 22 : 24,
                     transform: `scale(${isActive ? 1 : HERO_SIDE_SCALE})`,
                     opacity: isActive ? 1 : 0.5,
