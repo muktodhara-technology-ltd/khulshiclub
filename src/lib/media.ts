@@ -43,6 +43,8 @@ export type Article = {
   image: string | null
   featured?: boolean
   body?: string[]
+  /** ISO timestamp — used to pick the newest home lead vs videos. */
+  uploadedAt: number
 }
 
 export type VideoEntry = {
@@ -54,6 +56,8 @@ export type VideoEntry = {
   description: string | null
   video_url: string | null
   embed_url: string | null
+  /** ISO timestamp — used to pick the newest home lead vs news covers. */
+  uploadedAt: number
 }
 
 type Paginator<T> = { data?: T[]; total?: number }
@@ -160,6 +164,11 @@ function mapNotice(raw: unknown, index: number): NoticeEntry {
   }
 }
 
+function uploadedAtMs(raw: Record<string, unknown>, fallbackDate: Date | null) {
+  const fromApi = parseDate(raw.updated_at) || parseDate(raw.created_at) || fallbackDate
+  return fromApi ? fromApi.getTime() : 0
+}
+
 function mapArticle(raw: unknown, index: number, full = false): Article {
   const n = asObj(raw)
   const d = parseDate(n.event_date) || parseDate(n.publish_at)
@@ -172,6 +181,7 @@ function mapArticle(raw: unknown, index: number, full = false): Article {
     excerpt: str(n.summary) || null,
     image: mediaUrl(str(n.cover_image)) || null,
     featured: Boolean(n.featured),
+    uploadedAt: uploadedAtMs(n, d),
   }
   if (full) article.body = bodyParagraphs(n.body)
   return article
@@ -224,6 +234,7 @@ function mapVideo(raw: unknown, index: number): VideoEntry {
     description: str(v.description) || null,
     video_url: url,
     embed_url: embedFromUrl(url),
+    uploadedAt: uploadedAtMs(v, d),
   }
 }
 

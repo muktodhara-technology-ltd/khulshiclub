@@ -680,17 +680,34 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
   const allNews = featured
     ? [featured, ...(newsData?.articles ?? []).filter((a) => a.slug !== featured.slug)]
     : (newsData?.articles ?? [])
-  // Lead card uses the first item's cover; rows below list the next two.
-  const leadNews = allNews[0] ?? null
-  const NEWS_ITEMS = allNews.slice(1, 3)
-  const video = videosData?.videos?.[0]
+  // Newest news that has a cover image (by upload/update time).
+  const latestNewsCover = [...allNews]
+    .filter((a) => a.image)
+    .sort((a, b) => b.uploadedAt - a.uploadedAt)[0] ?? null
+  const latestVideo = [...(videosData?.videos ?? [])]
+    .sort((a, b) => b.uploadedAt - a.uploadedAt)[0] ?? null
+  // Lead slot: whichever was uploaded last — news cover photo, or video from Video tab.
+  const leadKind: 'news' | 'video' | null =
+    latestNewsCover && latestVideo
+      ? (latestVideo.uploadedAt > latestNewsCover.uploadedAt ? 'video' : 'news')
+      : latestNewsCover
+        ? 'news'
+        : latestVideo
+          ? 'video'
+          : null
+  const leadNews = leadKind === 'news' ? latestNewsCover : null
+  const leadVideo = leadKind === 'video' ? latestVideo : null
+  // Text rows: up to 2 news items (skip the lead news so it is not duplicated).
+  const NEWS_ITEMS = allNews
+    .filter((a) => !(leadNews && a.slug === leadNews.slug))
+    .slice(0, 2)
 
   const viewAll = (t: MediaTab) => (e: React.MouseEvent) => { e.preventDefault(); onOpenMedia(t) }
 
   // On mobile only the active tab's panel shows; from lg both sit side by side
   const panelVisibility = (t: NewsTab) => (tab === t ? 'flex' : 'hidden') + ' lg:flex'
 
-  if (!NOTICES.length && !leadNews && !NEWS_ITEMS.length && !video) return null
+  if (!NOTICES.length && !leadNews && !leadVideo && !NEWS_ITEMS.length) return null
 
   return (
     <section id="media" className="section-pad" style={{ position: 'relative', background: HOME_BG_ALT, overflow: 'hidden' }}>
@@ -814,16 +831,14 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
               <a href="#" onClick={viewAll('news')} style={{ fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: '#E10B17', textDecoration: 'none' }}>View all →</a>
             </div>
 
-            {/* Lead story — first News & Events cover image */}
+            {/* Lead: last-uploaded news cover, or last-uploaded video */}
             {leadNews && (
               <div
                 className="relative overflow-hidden cursor-pointer aspect-video lg:aspect-auto"
                 onClick={() => onOpenMedia('news')}
                 style={{ borderRadius: 16, flex: '1 1 auto', minHeight: 180, background: '#EEF1F5' }}
               >
-                {leadNews.image
-                  ? <img src={leadNews.image} alt={leadNews.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block' }}/>
-                  : null}
+                <img src={leadNews.image!} alt={leadNews.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block' }}/>
                 <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top, rgba(14,17,22,0.80), transparent)' }}>
                   <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
                     <span
@@ -840,18 +855,17 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
               </div>
             )}
 
-            {/* Fallback when there is no news yet but a video exists */}
-            {!leadNews && video && (
+            {leadVideo && (
               <div className="relative overflow-hidden cursor-pointer aspect-video lg:aspect-auto" onClick={() => onOpenMedia('video')} style={{ borderRadius: 16, flex: '1 1 auto', minHeight: 180, background: '#111' }}>
-                {video.thumb && <img src={video.thumb} alt={video.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block', opacity: 0.85 }}/>}
+                {leadVideo.thumb && <img src={leadVideo.thumb} alt={leadVideo.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block', opacity: 0.85 }}/>}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="glass-strong flex items-center justify-center" style={{ width: 56, height: 56, borderRadius: '50%' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="#E10B17"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   </div>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top, rgba(14,17,22,0.80), transparent)' }}>
-                  <div style={{ fontFamily: 'CKCL', fontSize: 14, fontWeight: 600, color: '#FFFFFF' }}>{video.title}</div>
-                  {video.description && <div className="line-clamp-1" style={{ fontFamily: 'CKCL', fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{video.description}</div>}
+                  <div style={{ fontFamily: 'CKCL', fontSize: 14, fontWeight: 600, color: '#FFFFFF' }}>{leadVideo.title}</div>
+                  {leadVideo.description && <div className="line-clamp-1" style={{ fontFamily: 'CKCL', fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{leadVideo.description}</div>}
                 </div>
               </div>
             )}
