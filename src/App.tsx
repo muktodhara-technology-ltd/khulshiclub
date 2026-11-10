@@ -1098,11 +1098,9 @@ function coverflowScale(dist: number) {
   if (dist === 0) return 1
   return Math.max(0.78, 1 - Math.abs(dist) * 0.1)
 }
-function coverflowOpacity(dist: number) {
-  // Keep side cards clear — only a light dim so they don't look foggy
-  if (dist === 0) return 1
-  if (Math.abs(dist) === 1) return 0.92
-  return 0.82
+function coverflowOpacity(_dist: number) {
+  // No fade — side cards stay fully sharp (edge mask was also removed)
+  return 1
 }
 
 function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
@@ -1346,8 +1344,7 @@ function PeopleShowcase({
     <section id={id} className="section-pad" style={{ background, overflow: 'hidden' }}>
       <style>{`
         .marquee-viewport {
-          -webkit-mask-image: linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%);
-                  mask-image: linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%);
+          /* No edge fade — side photos must stay sharp at the corners */
         }
         .committee-card { transition: transform 300ms cubic-bezier(.22,1,.36,1); }
         .committee-card img { transition: transform 600ms cubic-bezier(.22,1,.36,1); }
