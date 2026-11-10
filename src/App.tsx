@@ -65,8 +65,7 @@ const HERO_SIDE_SCALE = 0.86
 const HERO_RATIO = 1.6
 const HERO_AUTOPLAY_MS = 5000
 
-// Three slides visible: the centred slide is the main picture, neighbours peek in at either side.
-// Same tripled-list loop as CommitteeCarouselMobile.
+// Centre slide + side peeks. 1 slide = static; 2+ = scroll; 3+ = infinite loop.
 function Hero() {
   const { home, ready, fromApi } = useHome()
   const linkProps = useLinkProps()
@@ -74,24 +73,46 @@ function Hero() {
   // API only — no dummy slides when the request fails or returns empty.
   const slides =
     ready && fromApi
-      ? hero.slides.map((s) => ({ src: s.image, alt: s.alt || hero.heading || 'Club' }))
+      ? hero.slides.map((s) => ({ src: s.image, alt: s.alt || hero.heading || 'Club' })).filter((s) => s.src)
       : []
   const len = slides.length
+  const canScroll = len >= 2
+  const loop = len >= 3 // seamless infinite; 2 slides still scroll but wrap with a short clone strip
   const hasCopy = Boolean(hero.heading || hero.text || hero.primary_label || hero.secondary_label)
-  const items = len ? [...slides, ...slides, ...slides] : []
+  // 1 slide: render once. 2 slides: double so both sides can peek. 3+: triple for infinite.
+  const items = !len
+    ? []
+    : len === 1
+      ? slides
+      : len === 2
+        ? [...slides, ...slides, ...slides, ...slides]
+        : [...slides, ...slides, ...slides]
+  const midStart = len === 1 ? 0 : len === 2 ? len * 1 : len
   const viewportRef = useRef<HTMLDivElement>(null)
   const touchX = useRef<number | null>(null)
   const [vw, setVw] = useState(1200)
-  const [active, setActive] = useState(len)
+  const [active, setActive] = useState(midStart)
   const [animate, setAnimate] = useState(true)
   const [paused, setPaused] = useState(false)
 
-  // Start on the middle copy's first slide whenever the set of photos changes
+  // Start on the middle copy whenever the set of photos changes
   useLayoutEffect(() => {
     if (!len) return
     setAnimate(false)
-    setActive(len)
-  }, [len])
+    setActive(midStart)
+  }, [len, midStart])
+
+  // Warm-decode every hero image so the next/peek slide never flashes empty
+  const slideSrcKey = slides.map((s) => s.src).join('|')
+  useEffect(() => {
+    if (!slideSrcKey) return
+    slideSrcKey.split('|').forEach((src) => {
+      if (!src) return
+      const img = new window.Image()
+      img.decoding = 'async'
+      img.src = src
+    })
+  }, [slideSrcKey])
 
   // Measure after the carousel DOM exists. (Early loading return skips the viewport,
   // so this must re-run when ready/len change — otherwise vw stays at the 1200 default
@@ -107,10 +128,10 @@ function Hero() {
   }, [ready, len])
 
   useEffect(() => {
-    if (paused || len < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!canScroll || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const id = window.setInterval(() => { if (!document.hidden) setActive((a) => a + 1) }, HERO_AUTOPLAY_MS)
     return () => window.clearInterval(id)
-  }, [paused, active, len])
+  }, [paused, active, canScroll])
 
   // Re-enable transitions two frames after a silent jump
   useEffect(() => {
@@ -121,11 +142,24 @@ function Hero() {
   }, [animate])
 
   const onTrackTransitionEnd = (e: React.TransitionEvent) => {
-    if (e.target !== e.currentTarget) return
-    if (active >= 2 * len || active < len) {
+    if (e.target !== e.currentTarget || !canScroll) return
+    if (len === 2) {
+      // Keep index inside the middle two copies (len .. 3*len-1)
+      if (active >= 3 * len || active < len) {
+        setAnimate(false)
+        setActive((a) => (a >= 3 * len ? a - 2 * len : a + 2 * len))
+      }
+      return
+    }
+    if (loop && (active >= 2 * len || active < len)) {
       setAnimate(false)
       setActive((a) => (a >= 2 * len ? a - len : a + len))
     }
+  }
+
+  const go = (dir: -1 | 1) => {
+    if (!canScroll) return
+    setActive((a) => a + dir)
   }
 
   // Mobile: main slide takes most of the width; tablet: ~76%; desktop: ~64% so both neighbours show clearly
@@ -141,7 +175,8 @@ function Hero() {
   const step = slideW * (1 + HERO_SIDE_SCALE) / 2 + gap
   const offset = vw / 2 - slideW / 2 - active * step
   const ease = 'cubic-bezier(.22,1,.36,1)'
-  const transition = animate ? `transform 700ms ${ease}, opacity 700ms` : 'none'
+  const trackTransition = animate ? `transform 700ms ${ease}` : 'none'
+  const slideTransition = animate ? `transform 700ms ${ease}, opacity 700ms` : 'none'
 
   if (!ready) {
     return <section id="home" className="hero-stage" style={{ background: '#0E1116', minHeight: 320 }} aria-busy="true" />
@@ -215,13 +250,18 @@ function Hero() {
             aspectRatio: `${HERO_RATIO}`,
             flex: '0 0 auto',
           }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-          onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
+          onMouseEnter={() => canScroll && setPaused(true)}
+          onMouseLeave={() => canScroll && setPaused(false)}
+          onTouchStart={(e) => {
+            if (!canScroll) return
+            touchX.current = e.touches[0].clientX
+            setPaused(true)
+          }}
           onTouchEnd={(e) => {
+            if (!canScroll) return
             if (touchX.current !== null) {
               const dx = e.changedTouches[0].clientX - touchX.current
-              if (Math.abs(dx) > 40) setActive((a) => a + (dx < 0 ? 1 : -1))
+              if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1)
             }
             touchX.current = null
             setPaused(false)
@@ -230,15 +270,16 @@ function Hero() {
           {/* Track */}
           <div
             onTransitionEnd={onTrackTransitionEnd}
-            style={{ position: 'absolute', inset: 0, transform: `translateX(${offset}px)`, transition: animate ? `transform 700ms ${ease}` : 'none' }}
+            style={{ position: 'absolute', inset: 0, transform: `translateX(${offset}px)`, transition: trackTransition, willChange: 'transform' }}
           >
             {items.map((s, i) => {
               const isActive = i === active
+              const near = Math.abs(i - active) <= 2
               return (
                 <div
                   key={i}
                   className="absolute top-0 overflow-hidden bg-[#1a1a1a]"
-                  onClick={() => setActive(i)}
+                  onClick={() => { if (canScroll && !isActive) setActive(i) }}
                   aria-hidden={!isActive || undefined}
                   style={{
                     left: i * step,
@@ -247,16 +288,19 @@ function Hero() {
                     aspectRatio: `${HERO_RATIO}`,
                     borderRadius: mobile ? 22 : 24,
                     transform: `scale(${isActive ? 1 : HERO_SIDE_SCALE})`,
-                    opacity: isActive ? 1 : 0.5,
-                    cursor: isActive ? 'default' : 'pointer',
+                    opacity: isActive ? 1 : canScroll ? 0.5 : 1,
+                    cursor: canScroll && !isActive ? 'pointer' : 'default',
                     zIndex: isActive ? 2 : 1,
-                    transition,
+                    transition: slideTransition,
                   }}
                 >
                   <img
                     src={s.src}
                     alt={s.alt}
-                    loading={Math.abs(i - active) <= 1 ? 'eager' : 'lazy'}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority={near ? 'high' : 'low'}
+                    draggable={false}
                     className="w-full h-full object-cover"
                   />
                   {/* Light bottom scrim to seat the image on the dark stage */}
@@ -266,29 +310,35 @@ function Hero() {
             })}
           </div>
 
-          {/* Arrows — desktop, over the side slides */}
-          <button className="hero-arrow hidden md:flex" aria-label="Previous slide" onClick={() => setActive((a) => a - 1)} style={{ left: arrowInset }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>
-          </button>
-          <button className="hero-arrow hidden md:flex" aria-label="Next slide" onClick={() => setActive((a) => a + 1)} style={{ right: arrowInset }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
-          </button>
+          {/* Arrows — only when there is more than one slide */}
+          {canScroll && (
+            <>
+              <button className="hero-arrow hidden md:flex" aria-label="Previous slide" onClick={() => go(-1)} style={{ left: arrowInset }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>
+              </button>
+              <button className="hero-arrow hidden md:flex" aria-label="Next slide" onClick={() => go(1)} style={{ right: arrowInset }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Position dots */}
-        <div className="hero-dots flex justify-center gap-1.5">
-          {slides.map((s, i) => {
-            const on = active % len === i
-            return (
-              <button
-                key={i}
-                aria-label={`Show slide ${i + 1}: ${s.alt}`}
-                onClick={() => setActive(len + i)}
-                style={{ width: on ? 22 : 6, height: 6, borderRadius: 999, border: 'none', padding: 0, cursor: 'pointer', background: on ? '#E10B17' : 'rgba(255,255,255,0.28)', transition: 'width 300ms, background 300ms' }}
-              />
-            )
-          })}
-        </div>
+        {/* Position dots — hide for a single image */}
+        {canScroll && (
+          <div className="hero-dots flex justify-center gap-1.5">
+            {slides.map((s, i) => {
+              const on = ((active % len) + len) % len === i
+              return (
+                <button
+                  key={i}
+                  aria-label={`Show slide ${i + 1}: ${s.alt}`}
+                  onClick={() => { setAnimate(true); setActive(midStart + i) }}
+                  style={{ width: on ? 22 : 6, height: 6, borderRadius: 999, border: 'none', padding: 0, cursor: 'pointer', background: on ? '#E10B17' : 'rgba(255,255,255,0.28)', transition: 'width 300ms, background 300ms' }}
+                />
+              )
+            })}
+          </div>
+        )}
 
         {/* Copy — below the carousel */}
         <div className="hero-copy">
