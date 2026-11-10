@@ -1035,10 +1035,10 @@ function CarouselScrollBar({
         aria-hidden
         style={{
           position: 'relative',
-          width: 'min(160px, 28vw)',
-          height: 2,
+          width: 'min(180px, 32vw)',
+          height: 1.5,
           borderRadius: 999,
-          background: '#D5DAE1',
+          background: '#C8CED6',
           flexShrink: 0,
         }}
       >
@@ -1048,8 +1048,8 @@ function CarouselScrollBar({
             top: '50%',
             left: `${leftPct}%`,
             width: `${thumbPct}%`,
-            height: 4,
-            marginTop: -2,
+            height: 5,
+            marginTop: -2.5,
             borderRadius: 999,
             background: '#0E1116',
             transition: 'left 450ms cubic-bezier(.22,1,.36,1)',
@@ -1090,10 +1090,18 @@ function CommitteeCardContent({ m, compact }: { m: ShowcasePerson; compact?: boo
   )
 }
 
-// Mobile: step carousel — the centred card is full size, neighbours shrink.
-// The list is tripled; after sliding into the first/last copy we silently jump back to the middle copy.
-const SIDE_SCALE = 0.8
-const AUTOPLAY_MS = 2800
+// Cover-flow carousel (ILLIYEEN-style): one large centre card, stacked smaller neighbours.
+const CF_AUTOPLAY_MS = 3200
+const CF_EASE = 'cubic-bezier(.22,1,.36,1)'
+
+function coverflowScale(dist: number) {
+  if (dist === 0) return 1
+  return Math.max(0.7, 1 - Math.abs(dist) * 0.13)
+}
+function coverflowOpacity(dist: number) {
+  if (dist === 0) return 1
+  return Math.max(0.38, 1 - Math.abs(dist) * 0.2)
+}
 
 function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   const len = people.length
@@ -1114,12 +1122,11 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   }, [])
 
   useEffect(() => {
-    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const id = window.setInterval(() => { if (!document.hidden) setActive((a) => a + 1) }, AUTOPLAY_MS)
+    if (paused || len < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => { if (!document.hidden) setActive((a) => a + 1) }, CF_AUTOPLAY_MS)
     return () => window.clearInterval(id)
-  }, [paused, active])
+  }, [paused, active, len])
 
-  // Re-enable transitions two frames after a silent jump
   useEffect(() => {
     if (animate) return
     let raf2 = 0
@@ -1135,17 +1142,17 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     }
   }
 
-  const cardW = Math.min(230, Math.round(vw * 0.48))
-  const cardH = Math.round(cardW * 1.38)
-  // Step so scaled neighbours sit ~10px from the centre card
-  const step = cardW * (1 + SIDE_SCALE) / 2 + 10
+  // Centre card ~62% of viewport; neighbours overlap behind it
+  const cardW = Math.min(260, Math.round(vw * 0.62))
+  const cardH = Math.round(cardW * 1.35)
+  const step = Math.round(cardW * 0.52)
   const offset = vw / 2 - cardW / 2 - active * step
-  const transition = animate ? 'transform 600ms cubic-bezier(.22,1,.36,1), opacity 600ms, box-shadow 600ms' : 'none'
+  const transition = animate ? `transform 650ms ${CF_EASE}, opacity 650ms, box-shadow 650ms` : 'none'
 
   return (
     <div
       ref={viewportRef}
-      style={{ width: '100%', overflow: 'hidden', padding: '12px 0 28px', touchAction: 'pan-y' }}
+      style={{ width: '100%', overflow: 'hidden', padding: '20px 0 8px', touchAction: 'pan-y' }}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
       onTouchEnd={(e) => {
         if (touchX.current !== null) {
@@ -1158,10 +1165,17 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     >
       <div
         onTransitionEnd={onTrackTransitionEnd}
-        style={{ position: 'relative', height: cardH, transform: `translateX(${offset}px)`, transition: animate ? 'transform 600ms cubic-bezier(.22,1,.36,1)' : 'none' }}
+        style={{
+          position: 'relative',
+          height: Math.round(cardH * 1.08),
+          transform: `translateX(${offset}px)`,
+          transition: animate ? `transform 650ms ${CF_EASE}` : 'none',
+        }}
       >
         {items.map((m, i) => {
-          const isActive = i === active
+          const dist = i - active
+          const isActive = dist === 0
+          const scale = coverflowScale(dist)
           return (
             <div
               key={i}
@@ -1169,12 +1183,21 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
               onClick={() => setActive(i)}
               aria-hidden={!isActive || undefined}
               style={{
-                left: i * step, width: cardW, height: cardH, borderRadius: 20, background: '#EEF1F5',
-                transform: `scale(${isActive ? 1 : SIDE_SCALE})`,
-                opacity: isActive ? 1 : 0.55,
-                boxShadow: isActive ? '0 24px 48px -16px rgba(14,17,22,0.40)' : '0 8px 20px -12px rgba(14,17,22,0.25)',
-                zIndex: isActive ? 2 : 1,
+                left: i * step,
+                width: cardW,
+                height: cardH,
+                top: Math.round((cardH * 1.08 - cardH) / 2),
+                borderRadius: 18,
+                background: '#EEF1F5',
+                border: isActive ? '1px solid rgba(14,17,22,0.12)' : '1px solid rgba(14,17,22,0.06)',
+                transform: `scale(${scale})`,
+                opacity: coverflowOpacity(dist),
+                boxShadow: isActive
+                  ? '0 28px 56px -18px rgba(14,17,22,0.42)'
+                  : '0 12px 28px -16px rgba(14,17,22,0.28)',
+                zIndex: 20 - Math.abs(dist),
                 transition,
+                cursor: isActive ? 'default' : 'pointer',
               }}
             >
               <CommitteeCardContent m={m} compact/>
@@ -1193,19 +1216,9 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   )
 }
 
-// Desktop: step carousel — the centre trio is full size, the rest shrink and dim (like the hero).
-// Each card is positioned by its slot relative to `active`; a card that wraps from one end to the
-// other jumps without a transition (it's off-screen behind the edge fade).
-const DESK_CARD_W = 270
-const DESK_CARD_H = 370
-const DESK_GAP = 20
-const DESK_SIDE_SCALE = 0.72
-const DESK_AUTOPLAY_MS = 3000
-
 function CommitteeCarouselDesktop({ people, reverse = false }: { people: ShowcasePerson[]; reverse?: boolean }) {
   const len = people.length
-  // Repeat the list so both sides stay filled however short it is
-  const copies = Math.max(1, Math.ceil(12 / len))
+  const copies = Math.max(1, Math.ceil(14 / Math.max(len, 1)))
   const items = Array.from({ length: copies }, () => people).flat()
   const n = items.length
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -1224,10 +1237,10 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
   }, [])
 
   useEffect(() => {
-    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const id = window.setInterval(() => { if (!document.hidden) setActive((a) => a + (reverse ? -1 : 1)) }, DESK_AUTOPLAY_MS)
+    if (paused || len < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => { if (!document.hidden) setActive((a) => a + (reverse ? -1 : 1)) }, CF_AUTOPLAY_MS)
     return () => window.clearInterval(id)
-  }, [paused, active, reverse])
+  }, [paused, active, reverse, len])
 
   useEffect(() => { prevActive.current = active }, [active])
 
@@ -1236,53 +1249,63 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
     return r > n / 2 ? r - n : r
   }
 
-  // Shrink cards on narrow viewports so the centre trio still fits
-  const cardW = Math.min(DESK_CARD_W, Math.floor((vw * 0.84 - 2 * DESK_GAP) / 3))
-  const cardH = Math.round(cardW * DESK_CARD_H / DESK_CARD_W)
-
-  // Slots -1, 0 and 1 are the centre trio; others step outwards at the smaller size
-  const sideW = cardW * DESK_SIDE_SCALE
-  const centreX = (slot: number) => {
-    if (Math.abs(slot) <= 1) return slot * (cardW + DESK_GAP)
-    const firstSide = cardW * 1.5 + DESK_GAP * 2 + sideW / 2
-    const dist = firstSide + (Math.abs(slot) - 2) * (sideW + DESK_GAP)
-    return slot > 0 ? dist : -dist
-  }
-
+  // One hero card in the middle; neighbours stack smaller behind (like the brand carousel)
+  const cardW = Math.min(340, Math.max(260, Math.round(vw * 0.28)))
+  const cardH = Math.round(cardW * 1.32)
+  const peek = Math.round(cardW * 0.55)
   const delta = active - prevActive.current
-  const ease = 'cubic-bezier(.22,1,.36,1)'
 
   return (
     <div>
       <div
         ref={viewportRef}
         className="marquee-viewport"
-        style={{ position: 'relative', width: '100%', height: cardH + 32, overflow: 'hidden' }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: Math.round(cardH * 1.12),
+          overflow: 'hidden',
+          perspective: 1200,
+        }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
         {items.map((m, i) => {
           const slot = slotOf(i, active)
+          if (Math.abs(slot) > 4) return null
           const wrapped = slotOf(i, prevActive.current) - delta !== slot
-          const isActive = Math.abs(slot) <= 1
-          const x = vw / 2 + centreX(slot) - cardW / 2
+          const isActive = slot === 0
+          const scale = coverflowScale(slot)
+          const x = vw / 2 - cardW / 2 + slot * peek
           return (
             <div
               key={i}
-              onClick={() => { if (!isActive) setActive((a) => a + slot - Math.sign(slot)) }}
-              aria-hidden={!isActive || i >= len || undefined}
+              onClick={() => { if (!isActive) setActive((a) => a + slot) }}
+              aria-hidden={!isActive || undefined}
               style={{
-                position: 'absolute', top: 8, left: 0, width: cardW, height: cardH,
-                transform: `translateX(${x}px) scale(${isActive ? 1 : DESK_SIDE_SCALE})`,
-                opacity: isActive ? 1 : 0.55,
-                zIndex: isActive ? 2 : 1,
+                position: 'absolute',
+                top: '50%',
+                left: 0,
+                width: cardW,
+                height: cardH,
+                marginTop: -cardH / 2,
+                transform: `translateX(${x}px) scale(${scale})`,
+                opacity: coverflowOpacity(slot),
+                zIndex: 40 - Math.abs(slot),
                 cursor: isActive ? 'default' : 'pointer',
-                transition: wrapped ? 'none' : `transform 700ms ${ease}, opacity 700ms`,
+                transition: wrapped ? 'none' : `transform 700ms ${CF_EASE}, opacity 700ms`,
               }}
             >
               <div
                 className="committee-card relative overflow-hidden w-full h-full"
-                style={{ borderRadius: 20, background: '#EEF1F5' }}
+                style={{
+                  borderRadius: 18,
+                  background: '#EEF1F5',
+                  border: isActive ? '1px solid rgba(14,17,22,0.14)' : '1px solid rgba(14,17,22,0.06)',
+                  boxShadow: isActive
+                    ? '0 32px 64px -20px rgba(14,17,22,0.45)'
+                    : '0 16px 36px -18px rgba(14,17,22,0.28)',
+                }}
               >
                 <CommitteeCardContent m={m}/>
               </div>
