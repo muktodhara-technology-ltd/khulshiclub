@@ -61,7 +61,8 @@ function useLinkProps() {
 
 // ─── SECTION 1 — Hero ─────────────────────────────────────────────────────────
 const HERO_SIDE_SCALE = 0.86
-const HERO_MIN_RATIO = 1.6
+/** Slide frame = upload size 1600×1000 → width/height = 1.6 (16:10). */
+const HERO_RATIO = 1.6
 const HERO_AUTOPLAY_MS = 5000
 
 // Three slides visible: the centred slide is the main picture, neighbours peek in at either side.
@@ -132,8 +133,8 @@ function Hero() {
   const tablet = !mobile && vw < 1024
   const slideRatio = mobile ? 0.88 : tablet ? 0.76 : 0.64
   const slideW = Math.round(vw * slideRatio)
-  // Tablet/desktop: never taller than 1.6:1 (the photos' own shape), so slides stay landscape on tall screens
-  const maxSlideH = mobile ? undefined : Math.round(slideW / HERO_MIN_RATIO)
+  // Exact 1600×1000 frame (do not flex-shrink — that was making height look short)
+  const slideH = Math.round(slideW / HERO_RATIO)
   // Arrows sit on the main slide's edges
   const arrowInset = `calc(${((1 - slideRatio) / 2) * 100}% - 24px)`
   const gap = mobile ? 10 : 20
@@ -171,8 +172,8 @@ function Hero() {
         }
         @media (min-width:768px) {
           .hero-stage { padding-top:116px; }
-          /* Carousel takes its capped height and only shrinks when the screen is short */
-          .hero-viewport { flex:0 1 auto; }
+          /* Keep exact 16:10 — never flex-shrink the carousel height */
+          .hero-viewport { flex:0 0 auto; }
           /* Full-bleed track; side slides fade out at the edges like the committee marquee */
           .hero-frame { max-width:none; }
           .hero-viewport {
@@ -203,7 +204,16 @@ function Hero() {
         <div
           ref={viewportRef}
           className="hero-viewport"
-          style={{ height: maxSlideH, maxHeight: maxSlideH }}
+          style={
+            mobile
+              ? undefined
+              : {
+                  width: '100%',
+                  height: slideH,
+                  aspectRatio: `${HERO_RATIO}`,
+                  flex: '0 0 auto',
+                }
+          }
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
@@ -230,7 +240,11 @@ function Hero() {
                   onClick={() => setActive(i)}
                   aria-hidden={!isActive || undefined}
                   style={{
-                    left: i * step, width: slideW, height: '100%', borderRadius: mobile ? 22 : 24,
+                    left: i * step,
+                    width: slideW,
+                    height: mobile ? '100%' : slideH,
+                    aspectRatio: mobile ? undefined : `${HERO_RATIO}`,
+                    borderRadius: mobile ? 22 : 24,
                     transform: `scale(${isActive ? 1 : HERO_SIDE_SCALE})`,
                     opacity: isActive ? 1 : 0.5,
                     cursor: isActive ? 'default' : 'pointer',
