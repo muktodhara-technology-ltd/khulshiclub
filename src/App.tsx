@@ -1096,11 +1096,13 @@ const CF_EASE = 'cubic-bezier(.22,1,.36,1)'
 
 function coverflowScale(dist: number) {
   if (dist === 0) return 1
-  return Math.max(0.7, 1 - Math.abs(dist) * 0.13)
+  return Math.max(0.78, 1 - Math.abs(dist) * 0.1)
 }
 function coverflowOpacity(dist: number) {
+  // Keep side cards clear — only a light dim so they don't look foggy
   if (dist === 0) return 1
-  return Math.max(0.38, 1 - Math.abs(dist) * 0.2)
+  if (Math.abs(dist) === 1) return 0.92
+  return 0.82
 }
 
 function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
