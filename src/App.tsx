@@ -1487,7 +1487,8 @@ function Leadership({ onViewCommittee }: { onViewCommittee?: () => void }) {
   // Heading copy: Website Maintenance → Home → Committee. People: About → Committee.
   const h = useHome().home.committee
   const { about, loading } = useAbout()
-  const roster = (about.executive_committee?.length ? about.executive_committee : about.founding_committee) || []
+  // Home leadership = running Executive only (API hides roster outside term dates).
+  const roster = about.executive_committee || []
   const people: ShowcasePerson[] = roster.map((m) => ({
     name: m.name,
     role: m.designation || m.tier || 'Committee',

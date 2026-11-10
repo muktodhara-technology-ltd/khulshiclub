@@ -35,6 +35,7 @@ export type AboutPageDoc = {
 }
 
 export type AboutCommitteeMember = {
+  member_id?: string | null
   name: string
   designation: string
   company: string
@@ -48,10 +49,18 @@ export type AboutCommitteeMember = {
   photo_preview?: string | null
 }
 
+export type AboutCommitteeTerm = {
+  start_date: string | null
+  end_date: string | null
+}
+
 export type AboutPayload = {
   pages: Record<string, AboutPageDoc>
   founding_committee: AboutCommitteeMember[]
   executive_committee: AboutCommitteeMember[]
+  executive_committee_term: AboutCommitteeTerm
+  /** False when term has not started yet or already ended (API-gated). */
+  executive_committee_active: boolean
 }
 
 function asObj(v: unknown): Record<string, unknown> {
@@ -66,6 +75,7 @@ function mapMember(raw: unknown): AboutCommitteeMember | null {
   if (!name.trim()) return null
   const photo = mediaUrl((m.photo as string) || (m.photo_preview as string) || '') || null
   return {
+    member_id: m.member_id == null || m.member_id === '' ? null : String(m.member_id),
     name,
     designation: m.designation == null ? '' : String(m.designation),
     company: m.company == null ? '' : String(m.company),
@@ -88,6 +98,30 @@ function mapCommittee(list: unknown): AboutCommitteeMember[] {
     .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
 }
 
+function mapCommitteeTerm(raw: unknown): AboutCommitteeTerm {
+  const t = asObj(raw)
+  const start = t.start_date == null || t.start_date === '' ? null : String(t.start_date).slice(0, 10)
+  const end = t.end_date == null || t.end_date === '' ? null : String(t.end_date).slice(0, 10)
+  return { start_date: start, end_date: end }
+}
+
+/** Format committee term for public display, e.g. "1 Jan 2024 – 31 Dec 2025". */
+export function formatCommitteeTerm(term: AboutCommitteeTerm | null | undefined): string {
+  if (!term) return ''
+  const fmt = (iso: string | null) => {
+    if (!iso) return ''
+    const d = new Date(`${iso}T00:00:00`)
+    if (Number.isNaN(d.getTime())) return iso
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+  const start = fmt(term.start_date)
+  const end = fmt(term.end_date)
+  if (start && end) return `${start} – ${end}`
+  if (start) return `From ${start}`
+  if (end) return `Until ${end}`
+  return ''
+}
+
 export function mergeAbout(raw: unknown): AboutPayload {
   const d = asObj(raw)
   const pagesRaw = asObj(d.pages)
@@ -101,10 +135,18 @@ export function mergeAbout(raw: unknown): AboutPayload {
       blocks: Array.isArray(p.blocks) ? (p.blocks as AboutBlock[]) : [],
     }
   }
+  const term = mapCommitteeTerm(d.executive_committee_term)
+  const active =
+    typeof d.executive_committee_active === 'boolean'
+      ? d.executive_committee_active
+      : true
+
   return {
     pages,
     founding_committee: mapCommittee(d.founding_committee),
-    executive_committee: mapCommittee(d.executive_committee),
+    executive_committee: active ? mapCommittee(d.executive_committee) : [],
+    executive_committee_term: term,
+    executive_committee_active: active,
   }
 }
 
@@ -142,7 +184,15 @@ export function useAbout(): {
 } {
   const { data, error, loading } = useApi<unknown>(ABOUT_API_PATH)
   const fromApi = Boolean(data)
-  const about = data ? mergeAbout(data) : { pages: {}, founding_committee: [], executive_committee: [] }
+  const about = data
+    ? mergeAbout(data)
+    : {
+        pages: {},
+        founding_committee: [],
+        executive_committee: [],
+        executive_committee_term: { start_date: null, end_date: null },
+        executive_committee_active: true,
+      }
   return { about, ready: !!data || !!error, fromApi, loading, error }
 }
 

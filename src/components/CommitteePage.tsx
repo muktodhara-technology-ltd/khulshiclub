@@ -3,7 +3,7 @@ import Footer from './Footer'
 import SubTabs from './SubTabs'
 import SideNavCard from './SideNav'
 import PersonPortrait from './PersonPortrait'
-import { useAbout } from '../lib/about'
+import { formatCommitteeTerm, useAbout } from '../lib/about'
 import { SITE_W, SITE_HEADER_PAD_INLINE } from '../lib/layout'
 
 // ─── Member data ──────────────────────────────────────────────────────────────
@@ -264,7 +264,17 @@ function MemberModal({
 }
 
 // ─── Page header (self-contained, no InnerPage dependency) ────────────────────
-function PageHeader({ title, breadcrumb, tabs }: { title: string; breadcrumb: string[]; tabs?: React.ReactNode }) {
+function PageHeader({
+  title,
+  subtitle,
+  breadcrumb,
+  tabs,
+}: {
+  title: string
+  subtitle?: string
+  breadcrumb: string[]
+  tabs?: React.ReactNode
+}) {
   return (
     <div
       // With mobile tabs the bar sits flush on the header's bottom edge, like the About pages
@@ -312,6 +322,21 @@ function PageHeader({ title, breadcrumb, tabs }: { title: string; breadcrumb: st
         {title}
       </h1>
 
+      {subtitle ? (
+        <p
+          style={{
+            fontFamily: 'CKCL',
+            fontSize: 15,
+            color: '#5C6673',
+            margin: '10px 0 0',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          {subtitle}
+        </p>
+      ) : null}
+
       {tabs && <div className="lg:hidden" style={{ position: 'relative', zIndex: 1, marginTop: 24 }}>{tabs}</div>}
     </div>
   )
@@ -343,7 +368,26 @@ export default function CommitteePage({
   const title = COMMITTEES.find((c) => c.id === type)!.label
   const breadcrumb = ['Home', 'About', title]
   const { about, loading, error } = useAbout()
-  const roster = type === 'founding' ? about.founding_committee : about.executive_committee
+  // Founding = former committee only — never show anyone still on the running executive list
+  const runningKeys = new Set(
+    (about.executive_committee || [])
+      .flatMap((m) => {
+        const keys: string[] = []
+        if (m.member_id) keys.push(`id:${String(m.member_id)}`)
+        const name = (m.name || '').trim().toLowerCase()
+        if (name) keys.push(`name:${name}`)
+        return keys
+      }),
+  )
+  const roster =
+    type === 'founding'
+      ? (about.founding_committee || []).filter((m) => {
+          if (m.member_id && runningKeys.has(`id:${String(m.member_id)}`)) return false
+          const name = (m.name || '').trim().toLowerCase()
+          if (name && runningKeys.has(`name:${name}`)) return false
+          return true
+        })
+      : about.executive_committee || []
   const members: CommitteeMember[] = roster.map((m, i) => ({
     id: i + 1,
     name: m.name,
@@ -353,6 +397,8 @@ export default function CommitteePage({
     photo: m.photo || null,
     bio: m.bio || '',
   }))
+  const termLabel =
+    type === 'executive' ? formatCommitteeTerm(about.executive_committee_term) : ''
 
   const filtered = members.filter((m) => {
     if (filter === 'Office Bearers') return m.tier === 'Office Bearer'
@@ -374,6 +420,7 @@ export default function CommitteePage({
     <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
       <PageHeader
         title={title}
+        subtitle={termLabel || undefined}
         breadcrumb={breadcrumb}
         tabs={<SubTabs tabs={COMMITTEES} active={type} onChange={onNavigate} />}
       />
@@ -408,7 +455,13 @@ export default function CommitteePage({
       ) : null}
       {showEmpty && !error ? (
         <p style={{ fontFamily: 'CKCL', fontSize: 15, color: '#5C6673', marginBottom: 24 }}>
-          No committee members published yet. Add them in Website Maintenance → About → Founding / Executive Committee.
+          {type === 'executive' && about.executive_committee_active === false
+            ? termLabel
+              ? `The Executive Committee term (${termLabel}) is not active, so the current roster is not shown.`
+              : 'The Executive Committee term is not active, so the current roster is not shown.'
+            : type === 'executive'
+              ? 'No committee members published yet. Add the running roster under Website Maintenance → About → Executive Committee.'
+              : 'No former committee members yet. People appear here after they are removed from Executive.'}
         </p>
       ) : null}
       {/* Filter chip row */}

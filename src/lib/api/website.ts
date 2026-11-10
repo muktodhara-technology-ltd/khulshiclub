@@ -72,7 +72,13 @@ export function postWebsiteContact(body: {
 
 /** Helpers for later pages — wired when those screens connect. */
 export function getWebsiteAbout() {
-  return apiGet<{ pages: unknown; founding_committee: unknown[]; executive_committee: unknown[] }>(`${BASE}/about`)
+  return apiGet<{
+    pages: unknown
+    founding_committee: unknown[]
+    executive_committee: unknown[]
+    executive_committee_term?: { start_date?: string | null; end_date?: string | null }
+    executive_committee_active?: boolean
+  }>(`${BASE}/about`)
 }
 
 export function getWebsiteMembership() {
