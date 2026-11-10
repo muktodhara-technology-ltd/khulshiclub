@@ -186,24 +186,22 @@ function Hero() {
   return (
     <section id="home" className="hero-stage">
       <style>{`
-        /* Whole hero fits one screen; carousel keeps exact 16:10 (1600×1000) on all breakpoints */
-        .hero-stage { background:#0E1116; height:100vh; height:100svh; min-height:560px; display:flex; flex-direction:column; padding:104px 0 88px; }
+        /* Stage grows with carousel + copy so buttons never spill into the next section */
+        .hero-stage { background:#0E1116; height:auto; min-height:100vh; min-height:100svh; display:flex; flex-direction:column; padding:104px 0 56px; overflow:visible; }
         /* Sit directly under the floating navbar — do not vertically centre (that left a gap) */
-        .hero-frame { flex:1; min-height:0; width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:flex-start; }
+        .hero-frame { width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:flex-start; }
         .hero-viewport { position:relative; overflow:hidden; flex:0 0 auto; min-height:0; touch-action:pan-y; }
-        /* Phones: size stage to content so the fixed 16:10 slide is not squeezed */
         @media (max-width:767px) {
-          .hero-stage { height:auto; min-height:0; padding-bottom:48px; }
+          .hero-stage { min-height:0; padding-bottom:48px; }
         }
-        .hero-dots { margin-top:14px; }
+        .hero-dots { margin-top:14px; flex:none; }
         .hero-copy { flex:none; display:grid; width:100%; max-width:${SITE_W}px; margin:0 auto; padding:18px 20px 0; }
         .hero-copy .eyebrow { margin-bottom:12px !important; }
         .hero-copy h1 { font-size:clamp(28px, 8vw, 36px) !important; margin-bottom:12px !important; }
         .hero-copy p { font-size:14px !important; margin-bottom:18px !important; }
         .hero-copy .hero-btn-primary, .hero-copy .hero-btn-ghost { font-size:14px; padding:12px 18px; }
         .hero-copy .fade-up.flex { flex-wrap:nowrap; gap:10px; }
-        /* No mobile tab bar from 640px */
-        @media (min-width:640px) { .hero-stage { padding-bottom:28px; } }
+        @media (min-width:640px) { .hero-stage { padding-bottom:48px; } }
         @media (max-width:639px) and (max-height:720px) {
           .hero-copy .eyebrow { display:none; }
           .hero-copy h1 { font-size:28px !important; }
@@ -211,8 +209,7 @@ function Hero() {
         }
         @media (min-width:768px) {
           /* Navbar top 20 + bar 72 + small gap — keep hero tight under the header */
-          .hero-stage { padding-top:100px; padding-bottom:28px; }
-          /* Keep exact 16:10 — never flex-shrink the carousel height */
+          .hero-stage { padding-top:100px; padding-bottom:56px; }
           .hero-viewport { flex:0 0 auto; }
           /* Full-bleed track; side slides fade out at the edges like the committee marquee */
           .hero-frame { max-width:none; justify-content:flex-start; }
@@ -220,7 +217,7 @@ function Hero() {
             -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
                     mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
           }
-          .hero-copy { grid-template-columns:1.1fr 1fr; align-items:end; gap:48px; padding:28px clamp(24px,5vw,80px) 0; }
+          .hero-copy { grid-template-columns:1.1fr 1fr; align-items:start; gap:48px; padding:28px clamp(24px,5vw,80px) 0; }
           .hero-copy h1 { font-size:clamp(32px, min(4.2vw, 6.4vh), 64px) !important; margin-bottom:0 !important; }
           .hero-copy p { font-size:clamp(14px, 1.15vw, 17px) !important; margin-bottom:22px !important; }
           .hero-copy .hero-btn-primary { font-size:15px; padding:14px 28px; }
@@ -232,9 +229,8 @@ function Hero() {
           .hero-copy { grid-template-columns:1fr; align-items:start; gap:16px; }
           .hero-copy p { max-width:560px !important; }
         }
-        /* Portrait tablets: a full-screen stage leaves big gaps around the landscape carousel, so size to content */
         @media (min-width:768px) and (orientation:portrait) {
-          .hero-stage { height:auto; min-height:0; padding-bottom:56px; }
+          .hero-stage { min-height:0; padding-bottom:56px; }
         }
         .hero-arrow { position:absolute; top:50%; z-index:4; width:48px; height:48px; margin-top:-24px; border-radius:999px; border:1.5px solid rgba(255,255,255,0.45); background:rgba(14,17,22,0.35); backdrop-filter:blur(12px); color:#fff; cursor:pointer; align-items:center; justify-content:center; transition:background 200ms, border-color 200ms, transform 180ms ${ease}; }
         .hero-arrow:hover { background:rgba(225,11,23,0.9); border-color:#E10B17; transform:scale(1.06); }
@@ -247,7 +243,6 @@ function Hero() {
           style={{
             width: '100%',
             height: slideH,
-            aspectRatio: `${HERO_RATIO}`,
             flex: '0 0 auto',
           }}
           onMouseEnter={() => canScroll && setPaused(true)}
@@ -1080,11 +1075,15 @@ function CommitteeCardContent({ m, compact }: { m: ShowcasePerson; compact?: boo
   return (
     <>
       <PersonPortrait src={m.img} name={m.name} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(10,13,16,0.92) 0%, rgba(10,13,16,0.55) 30%, transparent 58%)' }}/>
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(10,13,16,0.88) 0%, rgba(10,13,16,0.40) 14%, transparent 26%)' }}/>
       <div className="absolute bottom-0 left-0 right-0" style={{ padding: compact ? 14 : 18 }}>
-        <div className="eyebrow" style={{ display: 'inline-block', fontSize: compact ? 9 : 10, fontWeight: 600, color: '#E8C584', marginBottom: compact ? 6 : 8 }}>{m.role}</div>
+        {m.role ? (
+          <div className="eyebrow" style={{ display: 'block', fontSize: compact ? 9 : 10, fontWeight: 600, color: '#E8C584', marginBottom: compact ? 6 : 8 }}>{m.role}</div>
+        ) : null}
         <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: compact ? 14 : 16, color: '#FFFFFF', lineHeight: 1.25, marginBottom: 4 }}>{m.name}</div>
-        <div style={{ fontFamily: 'CKCL', fontSize: compact ? 11 : 12, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.company}</div>
+        {m.company ? (
+          <div style={{ fontFamily: 'CKCL', fontSize: compact ? 11 : 12, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.company}</div>
+        ) : null}
       </div>
     </>
   )
@@ -1099,7 +1098,6 @@ function coverflowScale(dist: number) {
   return Math.max(0.78, 1 - Math.abs(dist) * 0.1)
 }
 function coverflowOpacity(_dist: number) {
-  // No fade — side cards stay fully sharp (edge mask was also removed)
   return 1
 }
 
@@ -1108,10 +1106,13 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   const items = [...people, ...people, ...people]
   const viewportRef = useRef<HTMLDivElement>(null)
   const touchX = useRef<number | null>(null)
+  const prevActive = useRef(len)
   const [vw, setVw] = useState(390)
   const [active, setActive] = useState(len)
   const [animate, setAnimate] = useState(true)
   const [paused, setPaused] = useState(false)
+  const [exitI, setExitI] = useState<number | null>(null)
+  const [exitDist, setExitDist] = useState<-2 | 2>(-2)
 
   useEffect(() => {
     const el = viewportRef.current
@@ -1134,6 +1135,23 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
   }, [animate])
 
+  useLayoutEffect(() => {
+    const prev = prevActive.current
+    const d = active - prev
+    if (d !== 0) {
+      const dist = (d > 0 ? -2 : 2) as -2 | 2
+      setExitI(prev + dist)
+      setExitDist(dist)
+    }
+    prevActive.current = active
+  }, [active])
+
+  useEffect(() => {
+    if (exitI === null) return
+    const t = window.setTimeout(() => setExitI(null), 670)
+    return () => window.clearTimeout(t)
+  }, [exitI, active])
+
   const onTrackTransitionEnd = (e: React.TransitionEvent) => {
     if (e.target !== e.currentTarget) return
     if (active >= 2 * len || active < len) {
@@ -1142,10 +1160,10 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     }
   }
 
-  // Centre card ~58% of viewport; neighbours sit further out (less tucked under centre)
   const cardW = Math.min(250, Math.round(vw * 0.58))
   const cardH = Math.round(cardW * 1.35)
-  const step = Math.round(cardW * 0.7)
+  // Light gap from the centre — side cards must not tuck under it
+  const step = Math.round(cardW * 0.98)
   const offset = vw / 2 - cardW / 2 - active * step
   const transition = animate ? `transform 650ms ${CF_EASE}, opacity 650ms, box-shadow 650ms` : 'none'
 
@@ -1174,18 +1192,20 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
       >
         {items.map((m, i) => {
           const dist = i - active
-          // Show 5 cards: centre + 2 each side
-          if (Math.abs(dist) > 2) return null
-          const isActive = dist === 0
-          const scale = coverflowScale(dist)
+          const isExit = exitI === i
+          // Keep 5 in layout; hold the covered outer card until neighbour lands
+          if (!isExit && Math.abs(dist) > 2) return null
+          const useDist = isExit ? exitDist : dist
+          const isActive = useDist === 0
+          const scale = coverflowScale(useDist)
           return (
             <div
               key={i}
               className="absolute top-0 overflow-hidden"
-              onClick={() => setActive(i)}
+              onClick={() => { if (!isExit) setActive(i) }}
               aria-hidden={!isActive || undefined}
               style={{
-                left: i * step,
+                left: isExit ? (active + exitDist) * step : i * step,
                 width: cardW,
                 height: cardH,
                 top: Math.round((cardH * 1.08 - cardH) / 2),
@@ -1193,16 +1213,31 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
                 background: '#EEF1F5',
                 border: isActive ? '1px solid rgba(14,17,22,0.12)' : '1px solid rgba(14,17,22,0.06)',
                 transform: `scale(${scale})`,
-                opacity: coverflowOpacity(dist),
+                opacity: coverflowOpacity(useDist),
                 boxShadow: isActive
-                  ? '0 28px 56px -18px rgba(14,17,22,0.42)'
-                  : '0 12px 28px -16px rgba(14,17,22,0.28)',
-                zIndex: 20 - Math.abs(dist),
-                transition,
-                cursor: isActive ? 'default' : 'pointer',
+                  ? '0 10px 24px -12px rgba(14,17,22,0.18)'
+                  : '0 6px 16px -12px rgba(14,17,22,0.12)',
+                zIndex: isExit ? 10 : 20 - Math.abs(useDist),
+                transition: isExit ? 'none' : transition,
+                cursor: isActive || isExit ? 'default' : 'pointer',
+                pointerEvents: isExit ? 'none' : 'auto',
               }}
             >
               <CommitteeCardContent m={m} compact/>
+              {!isActive && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    borderRadius: 18,
+                    background: 'rgba(14,17,22,0.34)',
+                    backdropFilter: 'blur(2.5px)',
+                    WebkitBackdropFilter: 'blur(2.5px)',
+                  }}
+                />
+              )}
             </div>
           )
         })}
@@ -1224,10 +1259,13 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
   const items = Array.from({ length: copies }, () => people).flat()
   const n = items.length
   const viewportRef = useRef<HTMLDivElement>(null)
+  const activeRef = useRef(0)
   const prevActive = useRef(0)
   const [vw, setVw] = useState(1120)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
+  // Frozen under the neighbour until cover finishes — set in the same tick as active
+  const [exitCard, setExitCard] = useState<null | { i: number; slot: -2 | 2 }>(null)
 
   useLayoutEffect(() => {
     const el = viewportRef.current
@@ -1238,24 +1276,112 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
     return () => ro.disconnect()
   }, [])
 
-  useEffect(() => {
-    if (paused || len < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const id = window.setInterval(() => { if (!document.hidden) setActive((a) => a + (reverse ? -1 : 1)) }, CF_AUTOPLAY_MS)
-    return () => window.clearInterval(id)
-  }, [paused, active, reverse, len])
-
-  useEffect(() => { prevActive.current = active }, [active])
-
   const slotOf = (i: number, a: number) => {
+    if (!n) return 0
     const r = (((i - a) % n) + n) % n
     return r > n / 2 ? r - n : r
   }
 
-  // One hero card in the middle; neighbours peek beside it — not tucked too far under
+  const stepBy = (dir: number) => {
+    if (!dir || !n) return
+    const a = activeRef.current
+    const exitSlot = (dir > 0 ? -2 : 2) as -2 | 2
+    let exitI = -1
+    for (let i = 0; i < n; i++) {
+      if (slotOf(i, a) === exitSlot) { exitI = i; break }
+    }
+    prevActive.current = a
+    const next = a + dir
+    activeRef.current = next
+    setExitCard(exitI >= 0 ? { i: exitI, slot: exitSlot } : null)
+    setActive(next)
+  }
+
+  useEffect(() => {
+    if (!exitCard) return
+    const t = window.setTimeout(() => setExitCard(null), 720)
+    return () => window.clearTimeout(t)
+  }, [exitCard, active])
+
+  useEffect(() => {
+    if (paused || len < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => {
+      if (!document.hidden) stepBy(reverse ? -1 : 1)
+    }, CF_AUTOPLAY_MS)
+    return () => window.clearInterval(id)
+  }, [paused, active, reverse, len, n])
+
   const cardW = Math.min(320, Math.max(250, Math.round(vw * 0.26)))
   const cardH = Math.round(cardW * 1.32)
   const peek = Math.round(cardW * 0.78)
   const delta = active - prevActive.current
+  const centerX = vw / 2 - cardW / 2
+
+  const renderCard = (
+    i: number,
+    m: ShowcasePerson,
+    slot: number,
+    opts: { frozen?: boolean; wrapped?: boolean },
+  ) => {
+    const isActive = slot === 0
+    const inFocus = Math.abs(slot) <= 2
+    const scaleSlot = slot === 0 ? 0 : Math.sign(slot) * Math.min(Math.abs(slot), 2)
+    const scale = coverflowScale(scaleSlot)
+    const x = centerX + slot * peek
+    const z = opts.frozen ? 30 : 40 - Math.abs(slot)
+    return (
+      <div
+        key={opts.frozen ? `exit-${i}` : i}
+        onClick={() => {
+          if (opts.frozen || isActive || !inFocus) return
+          stepBy(slot)
+        }}
+        aria-hidden={!isActive || undefined}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          width: cardW,
+          height: cardH,
+          marginTop: -cardH / 2,
+          transform: `translateX(${x}px) scale(${scale})`,
+          opacity: 1,
+          zIndex: z,
+          cursor: isActive || opts.frozen ? 'default' : 'pointer',
+          pointerEvents: opts.frozen ? 'none' : 'auto',
+          transition: opts.frozen || opts.wrapped ? 'none' : `transform 700ms ${CF_EASE}, opacity 700ms`,
+        }}
+      >
+        <div
+          className="committee-card relative overflow-hidden w-full h-full"
+          style={{
+            borderRadius: 18,
+            background: '#EEF1F5',
+            border: isActive ? '1px solid rgba(14,17,22,0.14)' : '1px solid rgba(14,17,22,0.06)',
+            boxShadow: isActive
+              ? '0 10px 24px -12px rgba(14,17,22,0.18)'
+              : '0 6px 16px -12px rgba(14,17,22,0.12)',
+          }}
+        >
+          <CommitteeCardContent m={m}/>
+          {!isActive && inFocus && (
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                borderRadius: 18,
+                background: slot < 0
+                  ? 'linear-gradient(to left, rgba(14,17,22,0.42) 0%, rgba(14,17,22,0.14) 40%, rgba(14,17,22,0.02) 75%, transparent 100%)'
+                  : 'linear-gradient(to right, rgba(14,17,22,0.42) 0%, rgba(14,17,22,0.14) 40%, rgba(14,17,22,0.02) 75%, transparent 100%)',
+              }}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -1273,54 +1399,19 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
         onMouseLeave={() => setPaused(false)}
       >
         {items.map((m, i) => {
+          if (exitCard && exitCard.i === i) return null
           const slot = slotOf(i, active)
-          // Show 5 cards: centre + 2 each side
           if (Math.abs(slot) > 2) return null
           const wrapped = slotOf(i, prevActive.current) - delta !== slot
-          const isActive = slot === 0
-          const scale = coverflowScale(slot)
-          const x = vw / 2 - cardW / 2 + slot * peek
-          return (
-            <div
-              key={i}
-              onClick={() => { if (!isActive) setActive((a) => a + slot) }}
-              aria-hidden={!isActive || undefined}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: 0,
-                width: cardW,
-                height: cardH,
-                marginTop: -cardH / 2,
-                transform: `translateX(${x}px) scale(${scale})`,
-                opacity: coverflowOpacity(slot),
-                zIndex: 40 - Math.abs(slot),
-                cursor: isActive ? 'default' : 'pointer',
-                transition: wrapped ? 'none' : `transform 700ms ${CF_EASE}, opacity 700ms`,
-              }}
-            >
-              <div
-                className="committee-card relative overflow-hidden w-full h-full"
-                style={{
-                  borderRadius: 18,
-                  background: '#EEF1F5',
-                  border: isActive ? '1px solid rgba(14,17,22,0.14)' : '1px solid rgba(14,17,22,0.06)',
-                  boxShadow: isActive
-                    ? '0 32px 64px -20px rgba(14,17,22,0.45)'
-                    : '0 16px 36px -18px rgba(14,17,22,0.28)',
-                }}
-              >
-                <CommitteeCardContent m={m}/>
-              </div>
-            </div>
-          )
+          return renderCard(i, m, slot, { wrapped })
         })}
+        {exitCard && items[exitCard.i] && renderCard(exitCard.i, items[exitCard.i], exitCard.slot, { frozen: true })}
       </div>
       <CarouselScrollBar
         index={active}
         count={len}
-        onPrev={() => setActive((a) => a - 1)}
-        onNext={() => setActive((a) => a + 1)}
+        onPrev={() => stepBy(-1)}
+        onNext={() => stepBy(1)}
       />
     </div>
   )
@@ -1427,8 +1518,8 @@ function MemberDirectory({ onViewAll }: { onViewAll: () => void }) {
   const { people: rows, loading } = useDirectoryShowcase(12)
   const people: ShowcasePerson[] = rows.map((m) => ({
     name: m.full_name,
-    role: m.membership_type || 'Member',
-    company: [m.designation, m.company].filter(Boolean).join(', '),
+    role: m.designation || m.membership_type || 'Member',
+    company: m.company || '',
     img: m.photo_url || null,
   }))
   if (!h.enabled) return null

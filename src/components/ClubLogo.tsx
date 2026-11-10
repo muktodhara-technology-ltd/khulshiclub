@@ -3,21 +3,21 @@ import { useSiteInfo } from '../lib/siteInfo'
 
 /**
  * Club mark from Website Maintenance → Site Info.
- * With a logo: image + club name (short name preferred).
+ * With a logo: image only (pass showName to also show the club name).
  * Without a logo: name text only — never a bundled placeholder image.
  */
 export default function ClubLogo({
   height,
   color = '#0E1116',
   style,
-  showName = true,
+  showName = false,
 }: {
   /** Logo height — px number or any CSS length (e.g. a clamp()). */
   height: number | string
   /** Text colour for the name. */
   color?: string
   style?: CSSProperties
-  /** When a logo image exists, still show the club name beside it (default true). */
+  /** When a logo image exists, also show the club name beside it (default false). */
   showName?: boolean
 }) {
   const site = useSiteInfo()

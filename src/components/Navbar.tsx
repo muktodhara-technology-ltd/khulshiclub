@@ -182,7 +182,7 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
         >
           {/* Logo */}
           <a href="#home" onClick={() => onInnerNavigate?.('home')} className="flex items-center shrink-0 mr-6">
-            <ClubLogo height={scrolled ? 32 : 38} style={{ transition: 'height 240ms ease-out', flexShrink: 0 }} />
+            <ClubLogo height={scrolled ? 32 : 38} showName={false} style={{ transition: 'height 240ms ease-out', flexShrink: 0 }} />
           </a>
 
           {/* Desktop nav links */}
