@@ -974,6 +974,108 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
 // Card data shared by the committee and member-directory showcases
 type ShowcasePerson = { name: string; role: string; company: string; img: string | null }
 
+/** ILLIYEEN-style carousel chrome: ◀  ──●──  ▶  (no section background). */
+function CarouselScrollBar({
+  index,
+  count,
+  onPrev,
+  onNext,
+}: {
+  index: number
+  count: number
+  onPrev: () => void
+  onNext: () => void
+}) {
+  if (count <= 1) return null
+  const i = ((index % count) + count) % count
+  const thumbPct = Math.min(42, Math.max(22, 100 / count))
+  const leftPct = (i / (count - 1)) * (100 - thumbPct)
+  const btn: React.CSSProperties = {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    border: '1.5px solid #C8CED6',
+    background: 'transparent',
+    color: '#0E1116',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    transition: 'border-color 180ms, background 180ms, color 180ms',
+  }
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 22,
+        marginTop: 28,
+        padding: '0 16px',
+      }}
+    >
+      <button
+        type="button"
+        aria-label="Previous"
+        onClick={onPrev}
+        style={btn}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#E10B17'
+          e.currentTarget.style.color = '#E10B17'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#C8CED6'
+          e.currentTarget.style.color = '#0E1116'
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div
+        aria-hidden
+        style={{
+          position: 'relative',
+          width: 'min(160px, 28vw)',
+          height: 2,
+          borderRadius: 999,
+          background: '#D5DAE1',
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: `${leftPct}%`,
+            width: `${thumbPct}%`,
+            height: 4,
+            marginTop: -2,
+            borderRadius: 999,
+            background: '#0E1116',
+            transition: 'left 450ms cubic-bezier(.22,1,.36,1)',
+          }}
+        />
+      </div>
+      <button
+        type="button"
+        aria-label="Next"
+        onClick={onNext}
+        style={btn}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#E10B17'
+          e.currentTarget.style.color = '#E10B17'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#C8CED6'
+          e.currentTarget.style.color = '#0E1116'
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  )
+}
+
 function CommitteeCardContent({ m, compact }: { m: ShowcasePerson; compact?: boolean }) {
   return (
     <>
@@ -1081,26 +1183,12 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
         })}
       </div>
 
-      {/* Position: dots for short lists, a counter for long ones */}
-      {len > 10 ? (
-        <div style={{ marginTop: 20, textAlign: 'center', fontFamily: 'CKCL', fontSize: 13, color: '#5C6673' }}>
-          <span style={{ color: '#E10B17', fontWeight: 700 }}>{(active % len) + 1}</span> / {len}
-        </div>
-      ) : (
-      <div className="flex justify-center gap-1.5" style={{ marginTop: 20 }}>
-        {people.map((m, i) => {
-          const on = active % len === i
-          return (
-            <button
-              key={i}
-              aria-label={`Show ${m.name}`}
-              onClick={() => setActive(len + i)}
-              style={{ width: on ? 20 : 6, height: 6, borderRadius: 999, border: 'none', padding: 0, cursor: 'pointer', background: on ? '#E10B17' : '#D5DAE1', transition: 'width 300ms, background 300ms' }}
-            />
-          )
-        })}
-      </div>
-      )}
+      <CarouselScrollBar
+        index={active}
+        count={len}
+        onPrev={() => setActive((a) => a - 1)}
+        onNext={() => setActive((a) => a + 1)}
+      />
     </div>
   )
 }
@@ -1165,41 +1253,49 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
   const ease = 'cubic-bezier(.22,1,.36,1)'
 
   return (
-    <div
-      ref={viewportRef}
-      className="marquee-viewport"
-      style={{ position: 'relative', width: '100%', height: cardH + 32, overflow: 'hidden' }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      {items.map((m, i) => {
-        const slot = slotOf(i, active)
-        const wrapped = slotOf(i, prevActive.current) - delta !== slot
-        const isActive = Math.abs(slot) <= 1
-        const x = vw / 2 + centreX(slot) - cardW / 2
-        return (
-          <div
-            key={i}
-            onClick={() => { if (!isActive) setActive((a) => a + slot - Math.sign(slot)) }}
-            aria-hidden={!isActive || i >= len || undefined}
-            style={{
-              position: 'absolute', top: 8, left: 0, width: cardW, height: cardH,
-              transform: `translateX(${x}px) scale(${isActive ? 1 : DESK_SIDE_SCALE})`,
-              opacity: isActive ? 1 : 0.55,
-              zIndex: isActive ? 2 : 1,
-              cursor: isActive ? 'default' : 'pointer',
-              transition: wrapped ? 'none' : `transform 700ms ${ease}, opacity 700ms`,
-            }}
-          >
+    <div>
+      <div
+        ref={viewportRef}
+        className="marquee-viewport"
+        style={{ position: 'relative', width: '100%', height: cardH + 32, overflow: 'hidden' }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {items.map((m, i) => {
+          const slot = slotOf(i, active)
+          const wrapped = slotOf(i, prevActive.current) - delta !== slot
+          const isActive = Math.abs(slot) <= 1
+          const x = vw / 2 + centreX(slot) - cardW / 2
+          return (
             <div
-              className="committee-card relative overflow-hidden w-full h-full"
-              style={{ borderRadius: 20, background: '#EEF1F5' }}
+              key={i}
+              onClick={() => { if (!isActive) setActive((a) => a + slot - Math.sign(slot)) }}
+              aria-hidden={!isActive || i >= len || undefined}
+              style={{
+                position: 'absolute', top: 8, left: 0, width: cardW, height: cardH,
+                transform: `translateX(${x}px) scale(${isActive ? 1 : DESK_SIDE_SCALE})`,
+                opacity: isActive ? 1 : 0.55,
+                zIndex: isActive ? 2 : 1,
+                cursor: isActive ? 'default' : 'pointer',
+                transition: wrapped ? 'none' : `transform 700ms ${ease}, opacity 700ms`,
+              }}
             >
-              <CommitteeCardContent m={m}/>
+              <div
+                className="committee-card relative overflow-hidden w-full h-full"
+                style={{ borderRadius: 20, background: '#EEF1F5' }}
+              >
+                <CommitteeCardContent m={m}/>
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
+      <CarouselScrollBar
+        index={active}
+        count={len}
+        onPrev={() => setActive((a) => a - 1)}
+        onNext={() => setActive((a) => a + 1)}
+      />
     </div>
   )
 }
