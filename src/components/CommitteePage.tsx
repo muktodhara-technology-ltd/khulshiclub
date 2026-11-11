@@ -368,26 +368,8 @@ export default function CommitteePage({
   const title = COMMITTEES.find((c) => c.id === type)!.label
   const breadcrumb = ['Home', 'About', title]
   const { about, loading, error } = useAbout()
-  // Founding = former committee only — never show anyone still on the running executive list
-  const runningKeys = new Set(
-    (about.executive_committee || [])
-      .flatMap((m) => {
-        const keys: string[] = []
-        if (m.member_id) keys.push(`id:${String(m.member_id)}`)
-        const name = (m.name || '').trim().toLowerCase()
-        if (name) keys.push(`name:${name}`)
-        return keys
-      }),
-  )
-  const roster =
-    type === 'founding'
-      ? (about.founding_committee || []).filter((m) => {
-          if (m.member_id && runningKeys.has(`id:${String(m.member_id)}`)) return false
-          const name = (m.name || '').trim().toLowerCase()
-          if (name && runningKeys.has(`name:${name}`)) return false
-          return true
-        })
-      : about.executive_committee || []
+  // Founding and Executive are independent rosters — both can list the same member.
+  const roster = type === 'founding' ? about.founding_committee || [] : about.executive_committee || []
   const members: CommitteeMember[] = roster.map((m, i) => ({
     id: i + 1,
     name: m.name,
@@ -461,7 +443,7 @@ export default function CommitteePage({
               : 'The Executive Committee term is not active, so the current roster is not shown.'
             : type === 'executive'
               ? 'No committee members published yet. Add the running roster under Website Maintenance → About → Executive Committee.'
-              : 'No former committee members yet. People appear here after they are removed from Executive.'}
+              : 'No founding committee members published yet. Add people under Website Maintenance → About → Founding Committee.'}
         </p>
       ) : null}
       {/* Filter chip row */}
