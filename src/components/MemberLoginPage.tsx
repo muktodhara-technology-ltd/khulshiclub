@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ApiError } from '../lib/api/client'
 import { portalForgotPassword, portalLogin } from '../lib/portal'
-import { useHome } from '../lib/home'
 import { useSiteInfo } from '../lib/siteInfo'
 import ClubLogo from './ClubLogo'
 
@@ -22,9 +21,8 @@ export default function MemberLoginPage({ onLogin, onNavigate }: {
   onNavigate: (page: string) => void
 }) {
   const site = useSiteInfo()
-  // Background: first home hero slide, else the site's share image (both set in Website Maintenance).
-  const { home } = useHome()
-  const photo = home.hero.slides[0]?.image || site.og_image || null
+  // Background from Website Maintenance → Site Info → Member login background.
+  const photo = site.login_background || null
   const [memberId, setMemberId] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)

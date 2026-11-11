@@ -21,6 +21,8 @@ export type SiteInfo = {
   logo: string | null
   favicon: string | null
   og_image: string | null
+  /** Member login page full-bleed background (Site Info → Login background). */
+  login_background: string | null
   contact: {
     phone: string | null
     phone_alt: string | null
@@ -74,6 +76,7 @@ export const EMPTY_SITE: SiteInfo = {
   logo: null,
   favicon: null,
   og_image: null,
+  login_background: null,
   contact: {
     phone: null,
     phone_alt: null,
@@ -113,6 +116,7 @@ function mapSiteInfo(raw: WebsiteSiteInfoRaw | null | undefined): SiteInfo | nul
       raw.logo ||
       raw.favicon ||
       raw.share_image ||
+      raw.login_background ||
       raw.tagline ||
       raw.about_text,
   )
@@ -140,6 +144,7 @@ function mapSiteInfo(raw: WebsiteSiteInfoRaw | null | undefined): SiteInfo | nul
     logo: mediaUrl(raw.logo) || null,
     favicon: mediaUrl(raw.favicon) || null,
     og_image: mediaUrl(raw.share_image) || null,
+    login_background: mediaUrl(raw.login_background) || null,
     contact: {
       phone,
       phone_alt: phoneAlt,

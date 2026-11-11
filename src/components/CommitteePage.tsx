@@ -48,12 +48,12 @@ function MemberCard({
       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
       aria-label={`View profile of ${member.name}`}
     >
-      {/* Photo container — 4:5 ratio; name sits on the image so empty photos still read clearly */}
+      {/* Photo container — square corners; name sits on the image so empty photos still read clearly */}
       <div
         style={{
           position: 'relative',
           aspectRatio: featured ? '3 / 4' : '4 / 5',
-          borderRadius: 20,
+          borderRadius: 0,
           overflow: 'hidden',
           border: hovered ? `${featured ? 2 : 1}px solid #E10B17` : featured ? '2px solid #B98B43' : '1px solid rgba(185,139,67,0.45)',
           transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
@@ -156,7 +156,7 @@ function MemberModal({
       <div
         className="glass-strong relative w-full max-w-2xl"
         style={{
-          borderRadius: 28,
+          borderRadius: 0,
           overflow: 'hidden',
           animation: 'fadeUp 240ms ease-out both',
           maxHeight: '90vh',

@@ -30,6 +30,7 @@ export type WebsiteSiteInfoRaw = {
   logo?: string | null
   favicon?: string | null
   share_image?: string | null
+  login_background?: string | null
   phone?: string | null
   phone_alt?: string | null
   whatsapp?: string | null
