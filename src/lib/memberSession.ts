@@ -14,6 +14,8 @@ export type MemberProfile = {
   first_name?: string | null
   last_name?: string | null
   status?: string | null
+  /** Account Active/Inactive (dues lock). Separate from membership lifecycle status. */
+  is_account_active?: boolean
   membership_type?: string | null
   /** Hex card colour set on the membership type in the ERP; null = default dark card. */
   membership_type_color?: string | null

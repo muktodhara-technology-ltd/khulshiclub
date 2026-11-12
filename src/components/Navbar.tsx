@@ -111,10 +111,13 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
   const phone = site.contact.phone
   const email = site.contact.email
   const [scrolled, setScrolled] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Mobile + scrolled: swap wide logo for the favicon/icon mark
+  const showNavIcon = isMobile && scrolled
 
   // Pill starts where the previous page left it, then slides to the active tab
   const activeNavIdx = mobileNavIndex(currentPage)
@@ -131,6 +134,14 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
     const onScroll = () => setScrolled(window.scrollY > 80)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
   }, [])
 
   const handleMouseEnter = (label: string) => {
@@ -180,9 +191,14 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
             boxShadow: '0 16px 48px -8px rgba(14,17,22,0.10), 0 2px 6px rgba(14,17,22,0.06)',
           }}
         >
-          {/* Logo */}
+          {/* Logo — full mark at rest; favicon/icon when mobile header shrinks on scroll */}
           <a href="#home" onClick={() => onInnerNavigate?.('home')} className="flex items-center shrink-0 mr-6">
-            <ClubLogo height={scrolled ? 32 : 38} showName={false} style={{ transition: 'height 240ms ease-out', flexShrink: 0 }} />
+            <ClubLogo
+              height={showNavIcon ? 34 : scrolled ? 32 : 38}
+              showName={false}
+              iconOnly={showNavIcon}
+              style={{ transition: 'height 240ms ease-out, width 240ms ease-out', flexShrink: 0 }}
+            />
           </a>
 
           {/* Desktop nav links */}

@@ -11,6 +11,7 @@ export default function ClubLogo({
   color = '#0E1116',
   style,
   showName = false,
+  iconOnly = false,
 }: {
   /** Logo height — px number or any CSS length (e.g. a clamp()). */
   height: number | string
@@ -19,10 +20,13 @@ export default function ClubLogo({
   style?: CSSProperties
   /** When a logo image exists, also show the club name beside it (default false). */
   showName?: boolean
+  /** Compact mark: favicon (fallback logo), square — for shrunk mobile header. */
+  iconOnly?: boolean
 }) {
   const site = useSiteInfo()
   const h = typeof height === 'number' ? `${height}px` : height
   const label = (site.short_name || site.club_name || '').trim()
+  const iconSrc = site.favicon || site.logo
 
   const nameStyle: CSSProperties = {
     fontFamily: 'CKCL',
@@ -32,6 +36,27 @@ export default function ClubLogo({
     lineHeight: 1,
     color,
     whiteSpace: 'nowrap',
+  }
+
+  if (iconOnly && iconSrc) {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: h,
+          width: h,
+          ...style,
+        }}
+      >
+        <img
+          src={iconSrc}
+          alt={label || 'Club'}
+          style={{ height: h, width: h, objectFit: 'contain', display: 'block', flexShrink: 0 }}
+        />
+      </span>
+    )
   }
 
   if (site.logo) {

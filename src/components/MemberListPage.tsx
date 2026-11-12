@@ -255,25 +255,39 @@ function MemberListView({
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#F7F8FA' }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '' }}
           >
-          {/* Mobile: avatar beside name + tier, then designation · company */}
+          {/* Mobile list (1 per row): name → company → Founding/Director tier under company */}
           <div className="flex md:hidden items-center gap-3" style={{ padding: '14px 16px' }}>
             <Avatar src={m.avatar} name={m.name} size={44} />
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                <span style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 14, color: '#0E1116', lineHeight: 1.3 }}>{m.name}</span>
-                <span
+              <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 14, color: '#0E1116', lineHeight: 1.3, marginBottom: 4 }}>
+                {m.name}
+              </div>
+              {(m.designation || m.company) && (
+                <div style={{ fontFamily: 'CKCL', fontSize: 12.5, color: '#5C6673', lineHeight: 1.45 }}>
+                  {m.designation}{m.designation && m.company ? ', ' : ''}
+                  {m.company ? <span style={{ color: '#2A3039' }}>{m.company}</span> : null}
+                </div>
+              )}
+              {m.tier ? (
+                <div
                   style={{
-                    fontFamily: 'CKCL', fontWeight: 500, fontSize: 8.5, letterSpacing: '0.07em',
-                    color: ts.color, background: ts.bg, border: `1px solid ${ts.color}40`,
-                    borderRadius: 999, padding: '3px 8px', whiteSpace: 'nowrap',
+                    marginTop: 6,
+                    fontFamily: 'CKCL',
+                    fontWeight: 500,
+                    fontSize: 8.5,
+                    letterSpacing: '0.07em',
+                    color: ts.color,
+                    background: ts.bg,
+                    border: `1px solid ${ts.color}40`,
+                    borderRadius: 999,
+                    padding: '3px 8px',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-block',
                   }}
                 >
                   {m.tier.toUpperCase()}
-                </span>
-              </div>
-              <div style={{ fontFamily: 'CKCL', fontSize: 12.5, color: '#5C6673', lineHeight: 1.45 }}>
-                {m.designation}{m.designation && m.company ? ', ' : ''}<span style={{ color: '#2A3039' }}>{m.company}</span>
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
 

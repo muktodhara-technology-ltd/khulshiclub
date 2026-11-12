@@ -203,7 +203,7 @@ function FacilitiesOverview({ onSelectFacility }: { onSelectFacility: (id: Facil
               {withAreas.map((f) => (
                 <div
                   key={f.slug}
-                  className={`relative overflow-hidden cursor-pointer aspect-[4/5] sm:aspect-auto ${f.gridArea === 'pool' ? 'sm:h-[320px]' : 'sm:h-[220px]'}`}
+                  className={`relative overflow-hidden cursor-pointer aspect-[16/10] sm:aspect-auto ${f.gridArea === 'pool' ? 'sm:h-[320px]' : 'sm:h-[220px]'}`}
                   style={{ borderRadius: 16, background: '#EEF1F5' }}
                   onClick={() => onSelectFacility(f.slug)}
                 >
@@ -393,12 +393,16 @@ function FacilityDetailPage({
 
   return (
     <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
-      <div style={{ height: '60vh', minHeight: 380, position: 'relative', overflow: 'hidden', background: '#1a1a1a' }}>
+      {/* Rectangular hero on all breakpoints */}
+      <div
+        className="relative overflow-hidden aspect-[16/10]"
+        style={{ background: '#1a1a1a' }}
+      >
         {data.img ? (
           <img
             src={data.img}
             alt={data.name}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
             style={{ display: 'block', opacity: 0.92 }}
           />
         ) : null}
@@ -508,7 +512,7 @@ function FacilityDetailPage({
                     <button
                       key={i}
                       onClick={() => setLightboxIdx(i)}
-                      style={{ aspectRatio: '1', borderRadius: 12, overflow: 'hidden', background: '#EEF1F5', border: 'none', cursor: 'zoom-in', padding: 0, position: 'relative' }}
+                      style={{ aspectRatio: '16 / 10', borderRadius: 12, overflow: 'hidden', background: '#EEF1F5', border: 'none', cursor: 'zoom-in', padding: 0, position: 'relative' }}
                     >
                       <img src={photo.img} alt={photo.alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: 'rgba(14,17,22,0.35)' }}>

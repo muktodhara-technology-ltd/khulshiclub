@@ -77,6 +77,8 @@ type Member = {
   /** Membership-type card colour from the API (hex) — null = default dark card. */
   tierColor: string | null
   status: 'Active' | 'Suspended' | 'Expired'
+  /** false = admin deactivated for dues; login stays, facilities blocked. */
+  accountActive: boolean
   /** API photo; null → the name's initial is shown instead of a photo. */
   photo: string | null; email: string; phone: string
   joinDate: string; outstanding: number
@@ -132,6 +134,7 @@ function mapMemberFromApi(profile: MemberProfile | null | undefined, outstanding
     tier: profile?.membership_type || 'Member',
     tierColor: profile?.membership_type_color || null,
     status: mapPortalStatus(profile?.status),
+    accountActive: profile?.is_account_active !== false,
     photo: mediaUrl(profile?.photo_url) || null,
     email: profile?.email || '',
     phone: profile?.phone || '',
@@ -225,9 +228,9 @@ function AvatarDropdown({ member, onNavigate, onLogout }: { member: Member; onNa
           {/* Membership status dot — phones/tablets */}
           <span
             id="portal-status-dot"
-            title={`Membership ${member.status === 'Active' ? 'active' : 'inactive'}`}
-            aria-label={`Membership ${member.status === 'Active' ? 'active' : 'inactive'}`}
-            style={{ display: 'none', position: 'absolute', right: -1, bottom: -1, width: 11, height: 11, borderRadius: '50%', background: member.status === 'Active' ? T.green : T.brand, border: '2px solid #FFFFFF' }}
+            title={`Membership ${member.accountActive && member.status === 'Active' ? 'active' : 'inactive'}`}
+            aria-label={`Membership ${member.accountActive && member.status === 'Active' ? 'active' : 'inactive'}`}
+            style={{ display: 'none', position: 'absolute', right: -1, bottom: -1, width: 11, height: 11, borderRadius: '50%', background: member.accountActive && member.status === 'Active' ? T.green : T.brand, border: '2px solid #FFFFFF' }}
           />
         </div>
         <div style={{ lineHeight: 1, display: 'none', textAlign: 'left' }} id="portal-avatar-name">
@@ -677,7 +680,8 @@ function CardField({ label, children }: { label: string; children: React.ReactNo
 function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => void }) {
   const site = useSiteInfo()
   const [from, to] = tierCardGradient(member.tierColor)
-  const active = member.status === 'Active'
+  const st = membershipState(member)
+  const active = st.active
   const Tag = onOpen ? 'button' : 'div'
 
   return (
@@ -708,7 +712,7 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
             style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 999, background: active ? 'rgba(255,255,255,0.92)' : '#FFF1F2', color: active ? T.green : T.brand700, fontSize: 'clamp(9px,2.8cqw,10.5px)', fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? T.green : T.brand }}/>
-            {active ? 'ACTIVE' : 'INACTIVE'}
+            {st.label.toUpperCase()}
           </span>
         </div>
 
@@ -741,13 +745,34 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
 
 // Reason + next step under the card when the membership is not active
 function InactiveNote({ member, onNavigate }: { member: Member; onNavigate: (p: PortalPage) => void }) {
-  const st = membershipState(member.status)
+  const st = membershipState(member)
   if (st.active) return null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, padding: '10px 12px', background: st.bg, border: `1px solid ${st.border}`, borderRadius: 12 }}>
-      <span style={{ flex: 1, fontFamily: 'CKCL', fontSize: 13, color: T.ink600, lineHeight: 1.45 }}>{st.note}</span>
-      {st.cta && (
-        <button onClick={() => onNavigate(st.cta!.page)} style={{ flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 9, border: 'none', background: T.brand, color: '#FFF', fontFamily: 'CKCL', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{st.cta.label}</button>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 10, padding: '10px 12px', background: st.bg, border: `1px solid ${st.border}`, borderRadius: 12 }}>
+      <span style={{ flex: '1 1 200px', fontFamily: 'CKCL', fontSize: 13, color: T.ink600, lineHeight: 1.45 }}>{st.note}</span>
+      {st.ctas.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, flexShrink: 0 }}>
+          {st.ctas.map((cta) => (
+            <button
+              key={cta.label}
+              onClick={() => onNavigate(cta.page)}
+              style={{
+                height: 34,
+                padding: '0 14px',
+                borderRadius: 9,
+                border: cta.secondary ? `1.5px solid ${T.brand}` : 'none',
+                background: cta.secondary ? '#FFF' : T.brand,
+                color: cta.secondary ? T.brand : '#FFF',
+                fontFamily: 'CKCL',
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {cta.label}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -1070,17 +1095,77 @@ function AdRail() {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-// ─── Membership status: plain Active / Inactive for members, with the reason ──
-function membershipState(status: Member['status']) {
-  if (status === 'Active') {
-    return { active: true, label: 'Active', color: T.green, bg: T.greenDim, border: 'rgba(22,163,74,0.28)',
-      title: 'Your membership is active', note: 'You have full access to all club facilities.', cta: null as null | { label: string; page: PortalPage } }
+type MembershipCta = { label: string; page: PortalPage; secondary?: boolean }
+
+// ─── Membership status: Active / Deactive / Inactive, with reason + CTAs ──
+function membershipState(member: Member) {
+  type State = {
+    active: boolean
+    label: string
+    color: string
+    bg: string
+    border: string
+    title: string
+    note: string
+    ctas: MembershipCta[]
   }
-  return status === 'Suspended'
-    ? { active: false, label: 'Inactive', color: T.brand700, bg: T.brandDim, border: 'rgba(225,11,23,0.25)',
-        title: 'Your membership is inactive', note: 'Suspended due to overdue dues. Clear your balance to restore facility access.', cta: { label: 'Pay dues', page: 'account-statement' as PortalPage } }
-    : { active: false, label: 'Inactive', color: T.brand700, bg: T.brandDim, border: 'rgba(225,11,23,0.25)',
-        title: 'Your membership is inactive', note: 'Your membership has expired. Contact the club office to renew.', cta: { label: 'Contact helpdesk', page: 'helpdesk' as PortalPage } }
+
+  // Admin dues-lock: approved member but account deactivated
+  if (member.status === 'Active' && !member.accountActive) {
+    return {
+      active: false,
+      label: 'Deactive',
+      color: T.brand700,
+      bg: T.brandDim,
+      border: 'rgba(225,11,23,0.25)',
+      title: 'Your account is deactive',
+      note: 'Outstanding dues remain on your account. Facility access is paused until you settle your dues or contact the club admin.',
+      ctas: [
+        { label: 'Pay dues', page: 'account-statement' as PortalPage },
+        { label: 'Contact admin', page: 'helpdesk' as PortalPage, secondary: true },
+      ],
+    } satisfies State
+  }
+
+  if (member.status === 'Active') {
+    return {
+      active: true,
+      label: 'Active',
+      color: T.green,
+      bg: T.greenDim,
+      border: 'rgba(22,163,74,0.28)',
+      title: 'Your membership is active',
+      note: 'You have full access to all club facilities.',
+      ctas: [],
+    } satisfies State
+  }
+
+  if (member.status === 'Suspended') {
+    return {
+      active: false,
+      label: 'Inactive',
+      color: T.brand700,
+      bg: T.brandDim,
+      border: 'rgba(225,11,23,0.25)',
+      title: 'Your membership is inactive',
+      note: 'Suspended due to overdue dues. Clear your balance to restore facility access.',
+      ctas: [
+        { label: 'Pay dues', page: 'account-statement' as PortalPage },
+        { label: 'Contact admin', page: 'helpdesk' as PortalPage, secondary: true },
+      ],
+    } satisfies State
+  }
+
+  return {
+    active: false,
+    label: 'Inactive',
+    color: T.brand700,
+    bg: T.brandDim,
+    border: 'rgba(225,11,23,0.25)',
+    title: 'Your membership is inactive',
+    note: 'Your membership has expired. Contact the club office to renew.',
+    ctas: [{ label: 'Contact admin', page: 'helpdesk' as PortalPage }],
+  } satisfies State
 }
 
 function Dashboard({
@@ -1165,7 +1250,7 @@ function CardDetails({ member, outstanding, onNavigate, dashboard }: {
   onNavigate: (p: PortalPage) => void
   dashboard: PortalDashboard | null
 }) {
-  const st = membershipState(member.status)
+  const st = membershipState(member)
   const last = dashboard?.last_payment
   const nextDueAmt = Number(dashboard?.monthly_fees || 0)
   const nextDueDate = prettyDay(dashboard?.next_due_date)

@@ -24,6 +24,7 @@ export type PortalDashboard = {
   notices: { id: string; title: string; published_at: string | null }[]
   can_pay: boolean
   read_only: boolean
+  is_account_active?: boolean
 }
 
 export type PortalInvoice = {

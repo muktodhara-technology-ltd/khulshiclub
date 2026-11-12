@@ -197,14 +197,14 @@ function Hero() {
         .hero-dots { margin-top:14px; flex:none; }
         .hero-copy { flex:none; display:grid; width:100%; max-width:${SITE_W}px; margin:0 auto; padding:18px 20px 0; }
         .hero-copy .eyebrow { margin-bottom:12px !important; }
-        .hero-copy h1 { font-size:clamp(28px, 8vw, 36px) !important; margin-bottom:12px !important; }
+        .hero-copy h1 { font-size:clamp(24px, 7vw, 32px) !important; margin-bottom:12px !important; }
         .hero-copy p { font-size:14px !important; margin-bottom:18px !important; }
         .hero-copy .hero-btn-primary, .hero-copy .hero-btn-ghost { font-size:14px; padding:12px 18px; }
         .hero-copy .fade-up.flex { flex-wrap:nowrap; gap:10px; }
         @media (min-width:640px) { .hero-stage { padding-bottom:48px; } }
         @media (max-width:639px) and (max-height:720px) {
           .hero-copy .eyebrow { display:none; }
-          .hero-copy h1 { font-size:28px !important; }
+          .hero-copy h1 { font-size:24px !important; }
           .hero-copy p { font-size:13.5px !important; line-height:1.5 !important; }
         }
         @media (min-width:768px) {
@@ -218,7 +218,7 @@ function Hero() {
                     mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
           }
           .hero-copy { grid-template-columns:1.1fr 1fr; align-items:start; gap:48px; padding:28px clamp(24px,5vw,80px) 0; }
-          .hero-copy h1 { font-size:clamp(32px, min(4.2vw, 6.4vh), 64px) !important; margin-bottom:0 !important; }
+          .hero-copy h1 { font-size:clamp(28px, min(3.6vw, 5.4vh), 52px) !important; margin-bottom:0 !important; }
           .hero-copy p { font-size:clamp(14px, 1.15vw, 17px) !important; margin-bottom:22px !important; }
           .hero-copy .hero-btn-primary { font-size:15px; padding:14px 28px; }
           .hero-copy .hero-btn-ghost { font-size:15px; padding:13.5px 26px; }
@@ -349,7 +349,7 @@ function Hero() {
               style={{
                 fontFamily: 'CKCL',
                 fontWeight: 600,
-                fontSize: 'clamp(34px, 4.6vw, 68px)',
+                fontSize: 'clamp(28px, 3.8vw, 52px)',
                 lineHeight: 1.05,
                 letterSpacing: '-0.02em',
                 color: '#FFFFFF',
@@ -975,16 +975,20 @@ type ShowcasePerson = { name: string; role: string; company: string; img: string
 
 /** Committee carousel chrome: ◀  ▶ only. */
 function CarouselScrollBar({
+  index,
   count,
   onPrev,
   onNext,
+  onDot,
 }: {
   index: number
   count: number
   onPrev: () => void
   onNext: () => void
+  onDot?: (i: number) => void
 }) {
   if (count <= 1) return null
+  const active = ((index % count) + count) % count
   const btn: React.CSSProperties = {
     width: 44,
     height: 44,
@@ -1026,6 +1030,33 @@ function CarouselScrollBar({
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
+
+      {/* Hero-style position dots between the slide buttons */}
+      <div className="flex items-center justify-center gap-1.5" style={{ minWidth: 0 }}>
+        {Array.from({ length: count }, (_, i) => {
+          const on = active === i
+          return (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Show slide ${i + 1}`}
+              aria-current={on || undefined}
+              onClick={() => onDot?.(i)}
+              style={{
+                width: on ? 22 : 6,
+                height: 6,
+                borderRadius: 999,
+                border: 'none',
+                padding: 0,
+                cursor: onDot ? 'pointer' : 'default',
+                background: on ? '#E10B17' : '#C8CED6',
+                transition: 'width 300ms, background 300ms',
+              }}
+            />
+          )
+        })}
+      </div>
+
       <button
         type="button"
         aria-label="Next"
@@ -1156,76 +1187,81 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     : 'none'
 
   return (
-    <div
-      ref={viewportRef}
-      style={{ width: '100%', overflow: 'hidden', padding: '20px 0 8px', touchAction: 'pan-y' }}
-      onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
-      onTouchEnd={(e) => {
-        if (touchX.current !== null) {
-          const dx = e.changedTouches[0].clientX - touchX.current
-          if (Math.abs(dx) > 40) setActive((a) => a + (dx < 0 ? 1 : -1))
-        }
-        touchX.current = null
-        setPaused(false)
-      }}
-    >
-      <div
-        style={{
-          position: 'relative',
-          height: Math.round(cardH * 1.08),
-        }}
-      >
-        {items.map((m, i) => {
-          const dist = i - active
-          const isExit = exitI === i
-          // Keep 5 in layout; hold the covered outer card until neighbour lands
-          if (!isExit && Math.abs(dist) > 2) return null
-          const useDist = isExit ? exitDist : dist
-          const isActive = useDist === 0
-          const scale = coverflowScale(useDist)
-          return (
-            <div
-              key={i}
-              className="absolute top-0 overflow-hidden"
-              onClick={() => { if (!isExit) setActive(i) }}
-              aria-hidden={!isActive || undefined}
-              style={{
-                left: centerX + coverflowSlotX(useDist, cardW),
-                width: cardW,
-                height: cardH,
-                top: Math.round((cardH * 1.08 - cardH) / 2),
-                borderRadius: 0,
-                background: '#EEF1F5',
-                border: isActive ? '1px solid rgba(14,17,22,0.12)' : '1px solid rgba(14,17,22,0.06)',
-                transform: `scale(${scale})`,
-                opacity: coverflowOpacity(useDist),
-                boxShadow: isActive
-                  ? '0 10px 24px -12px rgba(14,17,22,0.18)'
-                  : '0 6px 16px -12px rgba(14,17,22,0.12)',
-                zIndex: isExit ? 10 : 20 - Math.abs(useDist),
-                transition: isExit ? 'none' : transition,
-                cursor: isActive || isExit ? 'default' : 'pointer',
-                pointerEvents: isExit ? 'none' : 'auto',
-              }}
-            >
-              <CommitteeCardContent m={m} compact/>
-              {!isActive && (
+    <div>
+      <div className="committee-edge-fade">
+        <div
+          ref={viewportRef}
+          className="committee-carousel-mobile"
+          style={{ width: '100%', overflow: 'hidden', padding: '20px 0 8px', touchAction: 'pan-y' }}
+          onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
+          onTouchEnd={(e) => {
+            if (touchX.current !== null) {
+              const dx = e.changedTouches[0].clientX - touchX.current
+              if (Math.abs(dx) > 40) setActive((a) => a + (dx < 0 ? 1 : -1))
+            }
+            touchX.current = null
+            setPaused(false)
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              height: Math.round(cardH * 1.08),
+            }}
+          >
+            {items.map((m, i) => {
+              const dist = i - active
+              const isExit = exitI === i
+              // Keep 5 in layout; hold the covered outer card until neighbour lands
+              if (!isExit && Math.abs(dist) > 2) return null
+              const useDist = isExit ? exitDist : dist
+              const isActive = useDist === 0
+              const scale = coverflowScale(useDist)
+              return (
                 <div
-                  aria-hidden
+                  key={i}
+                  className="absolute top-0 overflow-hidden"
+                  onClick={() => { if (!isExit) setActive(i) }}
+                  aria-hidden={!isActive || undefined}
                   style={{
-                    position: 'absolute',
-                    inset: 0,
-                    pointerEvents: 'none',
-                    borderRadius: 0,
-                    background: 'rgba(14,17,22,0.34)',
-                    backdropFilter: 'blur(2.5px)',
-                    WebkitBackdropFilter: 'blur(2.5px)',
+                    left: centerX + coverflowSlotX(useDist, cardW),
+                    width: cardW,
+                    height: cardH,
+                    top: Math.round((cardH * 1.08 - cardH) / 2),
+                    borderRadius: 8,
+                    background: '#EEF1F5',
+                    border: isActive ? '1px solid rgba(14,17,22,0.12)' : '1px solid rgba(14,17,22,0.06)',
+                    transform: `scale(${scale})`,
+                    opacity: coverflowOpacity(useDist),
+                    boxShadow: isActive
+                      ? '0 10px 24px -12px rgba(14,17,22,0.18)'
+                      : '0 6px 16px -12px rgba(14,17,22,0.12)',
+                    zIndex: isExit ? 10 : 20 - Math.abs(useDist),
+                    transition: isExit ? 'none' : transition,
+                    cursor: isActive || isExit ? 'default' : 'pointer',
+                    pointerEvents: isExit ? 'none' : 'auto',
                   }}
-                />
-              )}
-            </div>
-          )
-        })}
+                >
+                  <CommitteeCardContent m={m} compact/>
+                  {!isActive && (
+                    <div
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'none',
+                        borderRadius: 8,
+                        background: 'rgba(14,17,22,0.34)',
+                        backdropFilter: 'blur(2.5px)',
+                        WebkitBackdropFilter: 'blur(2.5px)',
+                      }}
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <CarouselScrollBar
@@ -1233,6 +1269,10 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
         count={len}
         onPrev={() => setActive((a) => a - 1)}
         onNext={() => setActive((a) => a + 1)}
+        onDot={(i) => {
+          const band = Math.floor(active / len) * len
+          setActive(band + i)
+        }}
       />
     </div>
   )
@@ -1339,7 +1379,7 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
         <div
           className="committee-card relative overflow-hidden w-full h-full"
           style={{
-            borderRadius: 0,
+            borderRadius: 8,
             background: '#EEF1F5',
             border: isActive ? '1px solid rgba(14,17,22,0.14)' : '1px solid rgba(14,17,22,0.06)',
             boxShadow: isActive
@@ -1355,7 +1395,7 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
                 position: 'absolute',
                 inset: 0,
                 pointerEvents: 'none',
-                borderRadius: 0,
+                borderRadius: 8,
                 background: slot < 0
                   ? 'linear-gradient(to left, rgba(14,17,22,0.42) 0%, rgba(14,17,22,0.14) 40%, rgba(14,17,22,0.02) 75%, transparent 100%)'
                   : 'linear-gradient(to right, rgba(14,17,22,0.42) 0%, rgba(14,17,22,0.14) 40%, rgba(14,17,22,0.02) 75%, transparent 100%)',
@@ -1369,33 +1409,39 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
 
   return (
     <div>
-      <div
-        ref={viewportRef}
-        className="marquee-viewport"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: Math.round(cardH * 1.12),
-          overflow: 'hidden',
-          perspective: 1200,
-        }}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-      >
-        {items.map((m, i) => {
-          if (exitCard && exitCard.i === i) return null
-          const slot = slotOf(i, active)
-          if (Math.abs(slot) > 2) return null
-          const wrapped = slotOf(i, prevActive.current) - delta !== slot
-          return renderCard(i, m, slot, { wrapped })
-        })}
-        {exitCard && items[exitCard.i] && renderCard(exitCard.i, items[exitCard.i], exitCard.slot, { frozen: true })}
+      <div className="committee-edge-fade">
+        <div
+          ref={viewportRef}
+          className="marquee-viewport"
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: Math.round(cardH * 1.12),
+            overflow: 'hidden',
+            perspective: 1200,
+          }}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {items.map((m, i) => {
+            if (exitCard && exitCard.i === i) return null
+            const slot = slotOf(i, active)
+            if (Math.abs(slot) > 2) return null
+            const wrapped = slotOf(i, prevActive.current) - delta !== slot
+            return renderCard(i, m, slot, { wrapped })
+          })}
+          {exitCard && items[exitCard.i] && renderCard(exitCard.i, items[exitCard.i], exitCard.slot, { frozen: true })}
+        </div>
       </div>
       <CarouselScrollBar
         index={active}
         count={len}
         onPrev={() => stepBy(-1)}
         onNext={() => stepBy(1)}
+        onDot={(i) => {
+          const cur = ((active % len) + len) % len
+          stepBy(i - cur)
+        }}
       />
     </div>
   )
@@ -1418,8 +1464,13 @@ function PeopleShowcase({
   return (
     <section id={id} className="section-pad" style={{ background, overflow: 'hidden' }}>
       <style>{`
-        .marquee-viewport {
-          /* No edge fade — side photos must stay sharp at the corners */
+        .committee-edge-fade {
+          position: relative;
+        }
+        .marquee-viewport,
+        .committee-carousel-mobile {
+          -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%);
+                  mask-image: linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%);
         }
         .committee-card { transition: transform 300ms cubic-bezier(.22,1,.36,1); }
         .committee-card img { transition: transform 600ms cubic-bezier(.22,1,.36,1); }
