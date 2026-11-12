@@ -43,9 +43,9 @@ function Avatar({ src, name, size = 72 }: { src: string | null; name: string; si
       style={{
         width: size,
         height: size,
-        borderRadius: '50%',
-        border: '2px solid rgba(185,139,67,0.55)',
-        boxShadow: '0 0 0 3px rgba(185,139,67,0.15)',
+        borderRadius: 8,
+        border: '1px solid rgba(185,139,67,0.45)',
+        boxShadow: '0 4px 12px rgba(14,17,22,0.06)',
         overflow: 'hidden',
         background: '#EEF1F5',
         flexShrink: 0,
