@@ -891,12 +891,12 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
               <a href="#" onClick={viewAll('news')} style={{ fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: '#E10B17', textDecoration: 'none' }}>View all →</a>
             </div>
 
-            {/* Lead: last-uploaded news cover, or last-uploaded video */}
+            {/* Lead: last-uploaded news cover, or last-uploaded video — same 16:9 frame */}
             {leadNews && (
               <div
-                className="relative overflow-hidden cursor-pointer aspect-video lg:aspect-auto"
+                className="relative overflow-hidden cursor-pointer w-full"
                 onClick={() => onOpenMedia('news')}
-                style={{ borderRadius: 16, flex: '1 1 auto', minHeight: 180, background: '#EEF1F5' }}
+                style={{ borderRadius: 16, aspectRatio: '16 / 9', background: '#EEF1F5' }}
               >
                 <img src={leadNews.image!} alt={leadNews.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block' }}/>
                 <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top, rgba(14,17,22,0.80), transparent)' }}>
@@ -916,7 +916,11 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
             )}
 
             {leadVideo && (
-              <div className="relative overflow-hidden cursor-pointer aspect-video lg:aspect-auto" onClick={() => onOpenMedia('video')} style={{ borderRadius: 16, flex: '1 1 auto', minHeight: 180, background: '#111' }}>
+              <div
+                className="relative overflow-hidden cursor-pointer w-full"
+                onClick={() => onOpenMedia('video')}
+                style={{ borderRadius: 16, aspectRatio: '16 / 9', background: '#111' }}
+              >
                 {leadVideo.thumb && <img src={leadVideo.thumb} alt={leadVideo.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block', opacity: 0.85 }}/>}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="glass-strong flex items-center justify-center" style={{ width: 56, height: 56, borderRadius: '50%' }}>
@@ -1071,6 +1075,18 @@ function coverflowScale(dist: number) {
 function coverflowOpacity(_dist: number) {
   return 1
 }
+/** Centre-to-centre offset so edge gap stays the same at every slot (scale-aware). */
+function coverflowSlotX(slot: number, cardW: number, gapRatio = 0.04) {
+  const sign = Math.sign(slot)
+  const abs = Math.abs(slot)
+  if (abs === 0) return 0
+  const gap = cardW * gapRatio
+  let x = 0
+  for (let d = 0; d < abs; d++) {
+    x += (cardW / 2) * (coverflowScale(d) + coverflowScale(d + 1)) + gap
+  }
+  return sign * Math.round(x)
+}
 
 function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   const len = people.length
@@ -1123,20 +1139,21 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
     return () => window.clearTimeout(t)
   }, [exitI, active])
 
-  const onTrackTransitionEnd = (e: React.TransitionEvent) => {
-    if (e.target !== e.currentTarget) return
-    if (active >= 2 * len || active < len) {
+  useEffect(() => {
+    if (active < 2 * len && active >= len) return
+    const t = window.setTimeout(() => {
       setAnimate(false)
       setActive((a) => (a >= 2 * len ? a - len : a + len))
-    }
-  }
+    }, animate ? 670 : 0)
+    return () => window.clearTimeout(t)
+  }, [active, len, animate])
 
-  const cardW = Math.min(250, Math.round(vw * 0.58))
+  const cardW = Math.min(230, Math.round(vw * 0.54))
   const cardH = Math.round(cardW * 1.35)
-  // Light gap from the centre — side cards must not tuck under it
-  const step = Math.round(cardW * 0.98)
-  const offset = vw / 2 - cardW / 2 - active * step
-  const transition = animate ? `transform 650ms ${CF_EASE}, opacity 650ms, box-shadow 650ms` : 'none'
+  const centerX = vw / 2 - cardW / 2
+  const transition = animate
+    ? `transform 650ms ${CF_EASE}, opacity 650ms, box-shadow 650ms, left 650ms ${CF_EASE}`
+    : 'none'
 
   return (
     <div
@@ -1153,12 +1170,9 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
       }}
     >
       <div
-        onTransitionEnd={onTrackTransitionEnd}
         style={{
           position: 'relative',
           height: Math.round(cardH * 1.08),
-          transform: `translateX(${offset}px)`,
-          transition: animate ? `transform 650ms ${CF_EASE}` : 'none',
         }}
       >
         {items.map((m, i) => {
@@ -1176,7 +1190,7 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
               onClick={() => { if (!isExit) setActive(i) }}
               aria-hidden={!isActive || undefined}
               style={{
-                left: isExit ? (active + exitDist) * step : i * step,
+                left: centerX + coverflowSlotX(useDist, cardW),
                 width: cardW,
                 height: cardH,
                 top: Math.round((cardH * 1.08 - cardH) / 2),
@@ -1282,9 +1296,8 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
     return () => window.clearInterval(id)
   }, [paused, active, reverse, len, n])
 
-  const cardW = Math.min(320, Math.max(250, Math.round(vw * 0.26)))
+  const cardW = Math.min(290, Math.max(230, Math.round(vw * 0.24)))
   const cardH = Math.round(cardW * 1.32)
-  const peek = Math.round(cardW * 0.78)
   const delta = active - prevActive.current
   const centerX = vw / 2 - cardW / 2
 
@@ -1298,7 +1311,7 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
     const inFocus = Math.abs(slot) <= 2
     const scaleSlot = slot === 0 ? 0 : Math.sign(slot) * Math.min(Math.abs(slot), 2)
     const scale = coverflowScale(scaleSlot)
-    const x = centerX + slot * peek
+    const x = centerX + coverflowSlotX(slot, cardW)
     const z = opts.frozen ? 30 : 40 - Math.abs(slot)
     return (
       <div
