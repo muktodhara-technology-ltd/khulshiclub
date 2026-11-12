@@ -195,12 +195,13 @@ function Hero() {
           .hero-stage { min-height:0; padding-bottom:48px; }
         }
         .hero-dots { margin-top:14px; flex:none; }
-        .hero-copy { flex:none; display:grid; width:100%; max-width:${SITE_W}px; margin:0 auto; padding:18px 20px 0; }
+        .hero-copy { flex:none; display:grid; width:100%; max-width:${SITE_W}px; margin:0 auto; padding:18px 20px 0; text-align:center; justify-items:center; }
+        .hero-copy > div { width:100%; }
         .hero-copy .eyebrow { margin-bottom:12px !important; }
         .hero-copy h1 { font-size:clamp(24px, 7vw, 32px) !important; margin-bottom:12px !important; }
-        .hero-copy p { font-size:14px !important; margin-bottom:18px !important; }
+        .hero-copy p { font-size:14px !important; margin-bottom:18px !important; margin-left:auto !important; margin-right:auto !important; }
         .hero-copy .hero-btn-primary, .hero-copy .hero-btn-ghost { font-size:14px; padding:12px 18px; }
-        .hero-copy .fade-up.flex { flex-wrap:nowrap; gap:10px; }
+        .hero-copy .fade-up.flex { flex-wrap:wrap; gap:10px; justify-content:center; }
         @media (min-width:640px) { .hero-stage { padding-bottom:48px; } }
         @media (max-width:639px) and (max-height:720px) {
           .hero-copy .eyebrow { display:none; }
@@ -217,9 +218,11 @@ function Hero() {
             -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
                     mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
           }
-          .hero-copy { grid-template-columns:1.1fr 1fr; align-items:start; gap:48px; padding:28px clamp(24px,5vw,80px) 0; }
+          .hero-copy { grid-template-columns:1.1fr 1fr; align-items:start; justify-items:stretch; gap:48px; padding:28px clamp(24px,5vw,80px) 0; text-align:left; }
+          .hero-copy > div { width:auto; }
           .hero-copy h1 { font-size:clamp(28px, min(3.6vw, 5.4vh), 52px) !important; margin-bottom:0 !important; }
-          .hero-copy p { font-size:clamp(14px, 1.15vw, 17px) !important; margin-bottom:22px !important; }
+          .hero-copy p { font-size:clamp(14px, 1.15vw, 17px) !important; margin-bottom:22px !important; margin-left:0 !important; margin-right:0 !important; }
+          .hero-copy .fade-up.flex { justify-content:flex-start; flex-wrap:nowrap; }
           .hero-copy .hero-btn-primary { font-size:15px; padding:14px 28px; }
           .hero-copy .hero-btn-ghost { font-size:15px; padding:13.5px 26px; }
         }

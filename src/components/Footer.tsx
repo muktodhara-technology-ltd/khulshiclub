@@ -351,40 +351,35 @@ export default function Footer({ maxWidth = SITE_W }: { maxWidth?: number }) {
       <div style={{ borderTop: `1px solid ${TONE.line}` }}>
         <div style={{ maxWidth, margin: '0 auto', padding: '22px clamp(24px,5vw,80px)' }}>
           <div
-            className="flex items-center gap-5 pb-5"
+            className="flex justify-center pb-5"
             style={{ borderBottom: `1px solid ${TONE.line}`, width: '100%' }}
           >
-            <div className="eyebrow" style={{ fontSize: 10, color: TONE.label, flex: '0 0 auto', whiteSpace: 'nowrap' }}>
-              We accept
-            </div>
             <img
               src={PAY_METHODS_IMG}
               alt="Accepted payment methods"
               style={{
-                flex: '1 1 0%',
                 width: '100%',
-                minWidth: 0,
+                maxWidth: 520,
                 height: 'auto',
                 objectFit: 'contain',
-                objectPosition: 'left center',
+                objectPosition: 'center',
                 display: 'block',
                 opacity: 0.95,
               }}
             />
           </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-5">
+          <div className="flex flex-col items-center gap-3 pt-5 text-center">
             <div style={{ fontFamily: 'CKCL', fontSize: 13, color: TONE.label }}>
               {site.copyright}
               {site.trade_license && <>
-                <span className="hidden lg:inline"> &nbsp;·&nbsp; </span>
-                <br className="lg:hidden"/>
+                <span> &nbsp;·&nbsp; </span>
                 Trade License {site.trade_license}
               </>}
             </div>
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex items-center gap-2 self-start lg:self-auto"
+              className="flex items-center gap-2"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: TONE.body, transition: 'color 160ms' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = TONE.hover }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = TONE.body }}

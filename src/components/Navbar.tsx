@@ -191,15 +191,36 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
             boxShadow: '0 16px 48px -8px rgba(14,17,22,0.10), 0 2px 6px rgba(14,17,22,0.06)',
           }}
         >
-          {/* Logo — full mark at rest; favicon/icon when mobile header shrinks on scroll */}
-          <a href="#home" onClick={() => onInnerNavigate?.('home')} className="flex items-center shrink-0 mr-6">
+          {/* Logo left at rest; on mobile scroll hide it and show favicon/icon centred */}
+          <a
+            href="#home"
+            onClick={() => onInnerNavigate?.('home')}
+            className="flex items-center shrink-0 mr-6"
+            style={{
+              opacity: showNavIcon ? 0 : 1,
+              pointerEvents: showNavIcon ? 'none' : 'auto',
+              transition: 'opacity 200ms ease-out',
+            }}
+            aria-hidden={showNavIcon || undefined}
+            tabIndex={showNavIcon ? -1 : undefined}
+          >
             <ClubLogo
-              height={showNavIcon ? 34 : scrolled ? 32 : 38}
+              height={scrolled ? 32 : 38}
               showName={false}
-              iconOnly={showNavIcon}
-              style={{ transition: 'height 240ms ease-out, width 240ms ease-out', flexShrink: 0 }}
+              style={{ transition: 'height 240ms ease-out', flexShrink: 0 }}
             />
           </a>
+          {showNavIcon && (
+            <a
+              href="#home"
+              onClick={() => onInnerNavigate?.('home')}
+              aria-label="Home"
+              className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+              style={{ zIndex: 2 }}
+            >
+              <ClubLogo height={34} showName={false} iconOnly />
+            </a>
+          )}
 
           {/* Desktop nav links */}
           <div className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
