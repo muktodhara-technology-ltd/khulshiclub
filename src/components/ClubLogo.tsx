@@ -26,8 +26,6 @@ export default function ClubLogo({
   const site = useSiteInfo()
   const h = typeof height === 'number' ? `${height}px` : height
   const label = (site.short_name || site.club_name || '').trim()
-  const iconSrc = site.favicon || site.logo
-
   const nameStyle: CSSProperties = {
     fontFamily: 'CKCL',
     fontWeight: 700,
@@ -38,7 +36,8 @@ export default function ClubLogo({
     whiteSpace: 'nowrap',
   }
 
-  if (iconOnly && iconSrc) {
+  // Favicon only — never fall back to the wide logo as a square crop
+  if (iconOnly && site.favicon) {
     return (
       <span
         style={{
@@ -51,7 +50,7 @@ export default function ClubLogo({
         }}
       >
         <img
-          src={iconSrc}
+          src={site.favicon}
           alt={label || 'Club'}
           style={{ height: h, width: h, objectFit: 'contain', display: 'block', flexShrink: 0 }}
         />

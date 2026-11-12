@@ -116,8 +116,8 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Mobile + scrolled: swap wide logo for the favicon/icon mark
-  const showNavIcon = isMobile && scrolled
+  // Mobile + scrolled: centre favicon when set; otherwise keep the logo (just smaller)
+  const showNavIcon = isMobile && scrolled && Boolean(site.favicon)
 
   // Pill starts where the previous page left it, then slides to the active tab
   const activeNavIdx = mobileNavIndex(currentPage)

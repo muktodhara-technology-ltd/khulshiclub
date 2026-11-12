@@ -393,16 +393,16 @@ function FacilityDetailPage({
 
   return (
     <div style={{ background: '#F7F8FA', minHeight: '100vh' }}>
-      {/* Rectangular hero on all breakpoints */}
+      {/* Mobile: rectangular hero; desktop keeps the taller stage */}
       <div
-        className="relative overflow-hidden aspect-[16/10]"
+        className="relative overflow-hidden aspect-[16/10] md:aspect-auto md:h-[60vh] md:min-h-[380px]"
         style={{ background: '#1a1a1a' }}
       >
         {data.img ? (
           <img
             src={data.img}
             alt={data.name}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover md:static"
             style={{ display: 'block', opacity: 0.92 }}
           />
         ) : null}
