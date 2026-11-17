@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react'
 import Footer from './Footer'
 import { useDirectoryList, type DirectoryMember } from '../lib/directory'
 import { useSiteInfo } from '../lib/siteInfo'
@@ -26,7 +26,7 @@ function toMember(m: DirectoryMember): Member {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const PAGE_SIZE = 12
+const PAGE_SIZE = 15 // 3 full rows of 5 on desktop
 
 function tierStyle(tier: string): { bg: string; color: string } {
   const t = tier.toLowerCase()
@@ -36,13 +36,38 @@ function tierStyle(tier: string): { bg: string; color: string } {
 }
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
-function Avatar({ src, name, size = 72 }: { src: string | null; name: string; size?: number }) {
+/** Same portrait shape as the Home committee cards (height = width × 1.35). */
+const PORTRAIT_RATIO = 1.35
+
+/** Mobile list photo: portrait card as tall as the text block beside it (name + company + tier). */
+function MatchHeightAvatar({ src, name }: { src: string | null; name: string }) {
+  const [side, setSide] = useState(60)
+  const selfRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    // The text block is the element right after the photo
+    const el = selfRef.current?.nextElementSibling as HTMLElement | null
+    if (!el) return
+    const update = () => setSide(Math.max(60, Math.round(el.getBoundingClientRect().height)))
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div ref={selfRef} style={{ flexShrink: 0 }}>
+      <Avatar src={src} name={name} size={Math.round(side / PORTRAIT_RATIO)} height={side} />
+    </div>
+  )
+}
+
+function Avatar({ src, name, size = 72, height, fill = false }: { src: string | null; name: string; size?: number; height?: number; fill?: boolean }) {
   const initials = name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase()
   return (
     <div
       style={{
-        width: size,
-        height: size,
+        // fill: take the parent's size (mobile list sizes the parent to the text block)
+        width: fill ? '100%' : size,
+        height: fill ? '100%' : (height ?? size),
         borderRadius: 8,
         border: '1px solid rgba(185,139,67,0.45)',
         boxShadow: '0 4px 12px rgba(14,17,22,0.06)',
@@ -256,8 +281,9 @@ function MemberListView({
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '' }}
           >
           {/* Mobile list (1 per row): name → company → Founding/Director tier under company */}
-          <div className="flex md:hidden items-center gap-3" style={{ padding: '14px 16px' }}>
-            <Avatar src={m.avatar} name={m.name} size={44} />
+          <div className="flex md:hidden items-start gap-3" style={{ padding: '14px 16px' }}>
+            {/* Square photo: width = height = name + company + tier block */}
+            <MatchHeightAvatar src={m.avatar} name={m.name} />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 14, color: '#0E1116', lineHeight: 1.3, marginBottom: 4 }}>
                 {m.name}
@@ -514,10 +540,11 @@ function Select({ value, onChange, options, placeholder }: {
   placeholder: string
 }) {
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', minWidth: 0 }}>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        className="w-full md:w-auto md:min-w-[160px]"
         style={{
           appearance: 'none',
           WebkitAppearance: 'none',
@@ -533,7 +560,7 @@ function Select({ value, onChange, options, placeholder }: {
           borderRadius: 10,
           cursor: 'pointer',
           outline: 'none',
-          minWidth: 160,
+          textOverflow: 'ellipsis',
         }}
       >
         <option value="">{placeholder}</option>
@@ -624,8 +651,11 @@ function FilterBar({
         </div>
 
         {/* Dropdowns */}
-        <Select value={tierFilter} onChange={onTierFilter} options={tierOptions} placeholder="Membership Type" />
-        <Select value={companyFilter} onChange={onCompanyFilter} options={companyOptions} placeholder="Company" />
+        {/* Membership Type + Company side by side (two equal columns on mobile) */}
+        <div className="grid grid-cols-2 gap-2.5 w-full md:flex md:w-auto">
+          <Select value={tierFilter} onChange={onTierFilter} options={tierOptions} placeholder="Membership Type" />
+          <Select value={companyFilter} onChange={onCompanyFilter} options={companyOptions} placeholder="Company" />
+        </div>
 
         {/* Result count */}
         <div
@@ -819,14 +849,14 @@ export default function MemberListPage() {
           <div style={{ marginBottom: 16, fontFamily: 'CKCL', fontSize: 13, color: '#E10B17' }}>{error}</div>
         )}
         {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
             {Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState onClear={clearFilters} />
         ) : viewMode === 'grid' ? (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5 mb-10">
               {paginated.map((m) => <MemberGridCard key={m.id} member={m} />)}
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>

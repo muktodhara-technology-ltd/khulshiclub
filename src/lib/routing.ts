@@ -28,6 +28,9 @@ export type RoutedPage =
 
 export type MediaTab = 'notices' | 'news' | 'gallery' | 'video'
 
+/** Resources sub-pages: /resources (reports), /resources/dues, /resources/reports/<report> */
+export type ResourceTab = 'reports' | 'dues'
+
 /** Signed-in member portal sections under /portal/... */
 export type PortalTab =
   | 'dashboard'
@@ -46,6 +49,11 @@ export type RouteState = {
   page: RoutedPage
   mediaTab: MediaTab
   portalPage: PortalTab
+  /** Media Centre item for /media/<tab>/<item>: notice id, article slug, album slug or video id */
+  mediaItem?: string | null
+  /** Resources tab + open report for /resources/reports/<id>-<slug> */
+  resourceTab?: ResourceTab
+  resourceItem?: string | null
 }
 
 const MEDIA_TABS: MediaTab[] = ['notices', 'news', 'gallery', 'video']
@@ -156,9 +164,27 @@ export function parseLocation(pathname = window.location.pathname): RouteState {
     return { page: STATIC[path], mediaTab: 'notices', portalPage: 'dashboard' }
   }
 
+  // One Media Centre item: /media/<tab>/<item> (item read from the raw path to keep its case)
+  const itemMatch = raw.match(/^\/media\/(notices|news|gallery|video)\/([^/]+)$/i)
+  if (itemMatch) {
+    let item = itemMatch[2]
+    try { item = decodeURIComponent(item) } catch { /* keep raw */ }
+    return { page: 'media', mediaTab: itemMatch[1].toLowerCase() as MediaTab, portalPage: 'dashboard', mediaItem: item }
+  }
+
   const mediaMatch = path.match(/^\/media\/(notices|news|gallery|video)$/)
   if (mediaMatch) {
     return { page: 'media', mediaTab: mediaMatch[1] as MediaTab, portalPage: 'dashboard' }
+  }
+
+  // Resources: /resources/dues, /resources/reports, /resources/reports/<id>-<slug>
+  const resourceMatch = raw.match(/^\/resources\/(reports|dues)(?:\/([^/]+))?$/i)
+  if (resourceMatch) {
+    const tab = resourceMatch[1].toLowerCase() as ResourceTab
+    if (tab === 'dues' && resourceMatch[2]) return { page: '404', mediaTab: 'notices', portalPage: 'dashboard' }
+    let item = resourceMatch[2] ?? null
+    if (item) { try { item = decodeURIComponent(item) } catch { /* keep raw */ } }
+    return { page: 'resources', mediaTab: 'notices', portalPage: 'dashboard', resourceTab: tab, resourceItem: item }
   }
 
   const facilityMatch = path.match(/^\/facilities\/([^/]+)$/)
@@ -209,4 +235,60 @@ export function readSearchQuery(): string {
 
 export function isMediaTab(v: string): v is MediaTab {
   return (MEDIA_TABS as string[]).includes(v)
+}
+
+/** URL of a Media Centre tab, or of one item inside it (/media/<tab>/<item>). */
+export function mediaPath(tab: MediaTab, item?: string | null) {
+  if (!item) return pathForPage('media', tab)
+  return `/media/${tab}/${encodeURIComponent(item)}`
+}
+
+/** URL of one News & Events article. */
+export function articlePath(slug: string) {
+  return mediaPath('news', slug)
+}
+
+/** Point the URL at a Media Centre tab or one of its items (notice, article, album, video). */
+export function syncMediaUrl(tab: MediaTab, item: string | null, mode: 'push' | 'replace' = 'push') {
+  const next = mediaPath(tab, item)
+  const state = { page: 'media', mediaTab: tab, portalPage: 'dashboard', mediaItem: item, searchQuery: '' }
+  if (`${window.location.pathname}${window.location.search}` === next) {
+    window.history.replaceState(state, '', next)
+    return
+  }
+  if (mode === 'replace') window.history.replaceState(state, '', next)
+  else window.history.pushState(state, '', next)
+}
+
+/** URL-safe piece of a title: "Annual Report 2025" → "annual-report-2025" */
+function slugify(text: string) {
+  return text.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+}
+
+/** URL key for one report: "<id>-<title-slug>"; only the leading id is used to find it. */
+export function reportKey(report: { id: number | string; title?: string | null }) {
+  const slug = slugify(report.title || '')
+  return slug ? `${report.id}-${slug}` : String(report.id)
+}
+
+/** Report id from a URL key ("12-annual-report-2025" → "12"). */
+export function reportIdFromKey(key: string) {
+  return key.split('-')[0]
+}
+
+/** URL of a Resources tab, or of one report in it. */
+export function resourcesPath(tab: ResourceTab, item?: string | null) {
+  if (tab === 'reports') return item ? `/resources/reports/${encodeURIComponent(item)}` : '/resources'
+  return '/resources/dues'
+}
+
+/** Point the URL at a Resources tab or one report. */
+export function syncResourcesUrl(tab: ResourceTab, item: string | null, mode: 'push' | 'replace' = 'push') {
+  const next = resourcesPath(tab, item)
+  const state = { page: 'resources', resourceTab: tab, resourceItem: item, searchQuery: '' }
+  if (mode === 'replace' || `${window.location.pathname}${window.location.search}` === next) {
+    window.history.replaceState(state, '', next)
+    return
+  }
+  window.history.pushState(state, '', next)
 }

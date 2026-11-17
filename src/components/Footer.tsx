@@ -44,14 +44,17 @@ const SOCIAL_ICONS: Record<string, (size: number) => React.ReactNode> = {
   facebook: (size) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>,
   youtube: (size) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-1.96C18.88 4 12 4 12 4s-6.88 0-8.6.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.94 1.94C5.12 20 12 20 12 20s6.88 0 8.6-.48a2.78 2.78 0 001.94-1.94A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>,
   instagram: (size) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>,
+  whatsapp: (size) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35zM12.04 21.5h-.01a9.45 9.45 0 01-4.82-1.32l-.35-.21-3.58.94.96-3.49-.23-.36a9.43 9.43 0 01-1.45-5.03c0-5.22 4.25-9.47 9.48-9.47a9.4 9.4 0 016.7 2.78 9.4 9.4 0 012.77 6.7c0 5.23-4.25 9.47-9.47 9.47zm8.06-17.54A11.32 11.32 0 0012.04.62C5.76.62.65 5.73.65 12c0 2.01.52 3.97 1.52 5.7L.55 23.62l6.04-1.58a11.36 11.36 0 005.44 1.39h.01c6.28 0 11.39-5.11 11.39-11.39 0-3.04-1.19-5.9-3.33-8.05z"/></svg>,
   linkedin: (size) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>,
 }
-const SOCIAL_LABELS: Record<string, string> = { facebook: 'Facebook', youtube: 'YouTube', instagram: 'Instagram', linkedin: 'LinkedIn' }
+const SOCIAL_LABELS: Record<string, string> = { facebook: 'Facebook', youtube: 'YouTube', instagram: 'Instagram', linkedin: 'LinkedIn', whatsapp: 'WhatsApp' }
 
 // Only the networks filled in under Admin → Site Info are shown
 function SocialRow({ size }: { size: number }) {
-  const { social } = useSiteInfo()
-  const links = Object.entries(social).filter(([k, url]) => url && SOCIAL_ICONS[k])
+  const { social, contact } = useSiteInfo()
+  // WhatsApp comes from the Site Info WhatsApp number (falls back to the main phone)
+  const all = { ...social, ...(contact.whatsapp_url ? { whatsapp: contact.whatsapp_url } : {}) }
+  const links = Object.entries(all).filter(([k, url]) => url && SOCIAL_ICONS[k])
   if (!links.length) return null
   return (
     <div className="flex items-center gap-2.5">
@@ -357,9 +360,9 @@ export default function Footer({ maxWidth = SITE_W }: { maxWidth?: number }) {
             <img
               src={PAY_METHODS_IMG}
               alt="Accepted payment methods"
+              className="max-w-[520px] lg:max-w-none"
               style={{
                 width: '100%',
-                maxWidth: 520,
                 height: 'auto',
                 objectFit: 'contain',
                 objectPosition: 'center',
@@ -369,7 +372,7 @@ export default function Footer({ maxWidth = SITE_W }: { maxWidth?: number }) {
             />
           </div>
 
-          <div className="flex flex-col items-center gap-3 pt-5 text-center">
+          <div className="flex flex-col items-center gap-3 pt-5 text-center lg:flex-row lg:justify-between lg:text-left">
             <div style={{ fontFamily: 'CKCL', fontSize: 13, color: TONE.label }}>
               {site.copyright}
               {site.trade_license && <>

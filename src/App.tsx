@@ -14,10 +14,10 @@ import { useDirectoryShowcase } from './lib/directory'
 import { useSiteInfo, type SiteInfo } from './lib/siteInfo'
 import { useHome, parseLink } from './lib/home'
 import { useFacilitiesList } from './lib/facilities'
-import { useAlbums, useNotices, useNewsList, useVideos } from './lib/media'
+import { useAlbums, useNotices, useNewsList, type Article } from './lib/media'
 import { useMemberSession } from './lib/memberSession'
 import { portalLogout } from './lib/portal'
-import { readRoute, readSearchQuery, syncUrl, type MediaTab as RouteMediaTab, type PortalTab, type RoutedPage } from './lib/routing'
+import { readRoute, readSearchQuery, syncUrl, syncMediaUrl, syncResourcesUrl, type ResourceTab, type MediaTab as RouteMediaTab, type PortalTab, type RoutedPage } from './lib/routing'
 import { SITE_W } from './lib/layout'
 import SearchOverlay from './components/SearchOverlay'
 import PersonPortrait from './components/PersonPortrait'
@@ -187,7 +187,8 @@ function Hero() {
     <section id="home" className="hero-stage">
       <style>{`
         /* Stage grows with carousel + copy so buttons never spill into the next section */
-        .hero-stage { background:#0E1116; height:auto; min-height:100vh; min-height:100svh; display:flex; flex-direction:column; padding:104px 0 56px; overflow:visible; }
+        /* Navbar sits 20px from the top and is 72px tall → 20 + 72 + 20 = 112px */
+        .hero-stage { background:#0E1116; height:auto; min-height:100vh; min-height:100svh; display:flex; flex-direction:column; padding:112px 0 56px; overflow:visible; }
         /* Sit directly under the floating navbar — do not vertically centre (that left a gap) */
         .hero-frame { width:100%; max-width:1680px; margin:0 auto; display:flex; flex-direction:column; justify-content:flex-start; }
         .hero-viewport { position:relative; overflow:hidden; flex:0 0 auto; min-height:0; touch-action:pan-y; }
@@ -209,8 +210,8 @@ function Hero() {
           .hero-copy p { font-size:13.5px !important; line-height:1.5 !important; }
         }
         @media (min-width:768px) {
-          /* Navbar top 20 + bar 72 + small gap — keep hero tight under the header */
-          .hero-stage { padding-top:100px; padding-bottom:56px; }
+          /* Navbar top 20 + bar 72 + 20 gap — same gap below the header as above it */
+          .hero-stage { padding-top:112px; padding-bottom:56px; }
           .hero-viewport { flex:0 0 auto; }
           /* Full-bleed track; side slides fade out at the edges like the committee marquee */
           .hero-frame { max-width:none; justify-content:flex-start; }
@@ -726,13 +727,76 @@ function Highlights() {
 // ─── SECTION 4 — Notices & News (same Media Centre APIs as /media) ────────────
 type NewsTab = 'notices' | 'news'
 
-function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) {
+const NEWS_SLIDE_MS = 4000
+
+/** Image-only crossfade slider of every News & Events cover photo. */
+function NewsImageSlider({ images, onOpen }: { images: { id: string | number; src: string; alt: string }[]; onOpen: (index: number) => void }) {
+  const count = images.length
+  const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  useEffect(() => { if (active >= count) setActive(0) }, [active, count])
+
+  useEffect(() => {
+    if (paused || count < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => { if (!document.hidden) setActive((a) => (a + 1) % count) }, NEWS_SLIDE_MS)
+    return () => window.clearInterval(id)
+  }, [paused, count, active])
+
+  if (!count) return null
+  return (
+    <div
+      className="relative overflow-hidden cursor-pointer w-full"
+      onClick={() => onOpen(active)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      style={{ borderRadius: 16, aspectRatio: '16 / 9', background: '#EEF1F5', flexShrink: 0 }}
+    >
+      {images.map((img, i) => (
+        <img
+          key={img.id}
+          src={img.src}
+          alt={img.alt}
+          aria-hidden={i !== active || undefined}
+          loading={i === 0 ? 'eager' : 'lazy'}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            display: 'block',
+            opacity: i === active ? 1 : 0,
+            transform: i === active ? 'scale(1)' : 'scale(1.04)',
+            transition: 'opacity 700ms ease, transform 1200ms ease',
+          }}
+        />
+      ))}
+      {count > 1 && (
+        <div className="absolute left-0 right-0 flex justify-center gap-1.5" style={{ bottom: 12 }}>
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              type="button"
+              aria-label={`Show image ${i + 1}`}
+              aria-current={i === active || undefined}
+              onClick={(e) => { e.stopPropagation(); setActive(i) }}
+              style={{
+                width: i === active ? 20 : 6, height: 6, borderRadius: 999, border: 'none', padding: 0, cursor: 'pointer',
+                background: i === active ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
+                boxShadow: '0 1px 4px rgba(14,17,22,0.35)',
+                transition: 'width 300ms, background 300ms',
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NoticesNews({ onOpenMedia, onOpenArticle }: { onOpenMedia: (tab: MediaTab) => void; onOpenArticle: (a: Article) => void }) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
   const [tab, setTab] = useState<NewsTab>('notices')
 
   const { data: noticesData } = useNotices()
   const { data: newsData } = useNewsList()
-  const { data: videosData } = useVideos()
 
   const NOTICES = (noticesData?.notices ?? []).slice(0, 6).map((n) => ({
     ...n,
@@ -743,34 +807,20 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
   const allNews = featured
     ? [featured, ...(newsData?.articles ?? []).filter((a) => a.slug !== featured.slug)]
     : (newsData?.articles ?? [])
-  // Newest news that has a cover image (by upload/update time).
-  const latestNewsCover = [...allNews]
+  // Slider: every News & Events cover photo, newest upload first (images only).
+  const NEWS_WITH_IMAGES = [...allNews]
     .filter((a) => a.image)
-    .sort((a, b) => b.uploadedAt - a.uploadedAt)[0] ?? null
-  const latestVideo = [...(videosData?.videos ?? [])]
-    .sort((a, b) => b.uploadedAt - a.uploadedAt)[0] ?? null
-  // Lead slot: whichever was uploaded last — news cover photo, or video from Video tab.
-  const leadKind: 'news' | 'video' | null =
-    latestNewsCover && latestVideo
-      ? (latestVideo.uploadedAt > latestNewsCover.uploadedAt ? 'video' : 'news')
-      : latestNewsCover
-        ? 'news'
-        : latestVideo
-          ? 'video'
-          : null
-  const leadNews = leadKind === 'news' ? latestNewsCover : null
-  const leadVideo = leadKind === 'video' ? latestVideo : null
-  // Text rows: up to 2 news items (skip the lead news so it is not duplicated).
-  const NEWS_ITEMS = allNews
-    .filter((a) => !(leadNews && a.slug === leadNews.slug))
-    .slice(0, 2)
+    .sort((a, b) => b.uploadedAt - a.uploadedAt)
+  const NEWS_IMAGES = NEWS_WITH_IMAGES.map((a) => ({ id: a.id, src: a.image as string, alt: a.title }))
+  // Text rows below the slider: the latest news & events.
+  const NEWS_ITEMS = allNews.slice(0, 3)
 
   const viewAll = (t: MediaTab) => (e: React.MouseEvent) => { e.preventDefault(); onOpenMedia(t) }
 
   // On mobile only the active tab's panel shows; from lg both sit side by side
   const panelVisibility = (t: NewsTab) => (tab === t ? 'flex' : 'hidden') + ' lg:flex'
 
-  if (!NOTICES.length && !leadNews && !leadVideo && !NEWS_ITEMS.length) return null
+  if (!NOTICES.length && !NEWS_IMAGES.length && !NEWS_ITEMS.length) return null
 
   return (
     <section id="media" className="section-pad" style={{ position: 'relative', background: HOME_BG_ALT, overflow: 'hidden' }}>
@@ -894,56 +944,16 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
               <a href="#" onClick={viewAll('news')} style={{ fontFamily: 'CKCL', fontSize: 13, fontWeight: 600, color: '#E10B17', textDecoration: 'none' }}>View all →</a>
             </div>
 
-            {/* Lead: last-uploaded news cover, or last-uploaded video — same 16:9 frame */}
-            {leadNews && (
-              <div
-                className="relative overflow-hidden cursor-pointer w-full"
-                onClick={() => onOpenMedia('news')}
-                style={{ borderRadius: 16, aspectRatio: '16 / 9', background: '#EEF1F5' }}
-              >
-                <img src={leadNews.image!} alt={leadNews.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block' }}/>
-                <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top, rgba(14,17,22,0.80), transparent)' }}>
-                  <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-                    <span
-                      className="eyebrow"
-                      style={{ fontSize: 9, borderRadius: 6, padding: '3px 7px', background: leadNews.category === 'Event' ? '#DCFCE7' : '#FFF1F2', color: leadNews.category === 'Event' ? '#15803D' : '#E10B17' }}
-                    >
-                      {leadNews.category}
-                    </span>
-                    {leadNews.date && <span className="eyebrow" style={{ fontSize: 9, color: 'rgba(255,255,255,0.70)' }}>{leadNews.date.toUpperCase()}</span>}
-                  </div>
-                  <div style={{ fontFamily: 'CKCL', fontSize: 15, fontWeight: 600, color: '#FFFFFF', lineHeight: 1.3 }}>{leadNews.title}</div>
-                  {leadNews.excerpt && <div className="line-clamp-1" style={{ fontFamily: 'CKCL', fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>{leadNews.excerpt}</div>}
-                </div>
-              </div>
-            )}
+            {/* Image-only slider of all News & Events covers */}
+            <NewsImageSlider images={NEWS_IMAGES} onOpen={(i) => { const a = NEWS_WITH_IMAGES[i]; if (a) onOpenArticle(a) }} />
 
-            {leadVideo && (
-              <div
-                className="relative overflow-hidden cursor-pointer w-full"
-                onClick={() => onOpenMedia('video')}
-                style={{ borderRadius: 16, aspectRatio: '16 / 9', background: '#111' }}
-              >
-                {leadVideo.thumb && <img src={leadVideo.thumb} alt={leadVideo.title} className="absolute inset-0 w-full h-full object-cover" style={{ display: 'block', opacity: 0.85 }}/>}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="glass-strong flex items-center justify-center" style={{ width: 56, height: 56, borderRadius: '50%' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#E10B17"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                  </div>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top, rgba(14,17,22,0.80), transparent)' }}>
-                  <div style={{ fontFamily: 'CKCL', fontSize: 14, fontWeight: 600, color: '#FFFFFF' }}>{leadVideo.title}</div>
-                  {leadVideo.description && <div className="line-clamp-1" style={{ fontFamily: 'CKCL', fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{leadVideo.description}</div>}
-                </div>
-              </div>
-            )}
-
-            {/* Compact text rows for the next stories */}
+            {/* News & Events list */}
             <div className="flex flex-col">
               {NEWS_ITEMS.map((item, i) => (
                 <div key={item.id} style={{ borderTop: i > 0 ? '1px solid rgba(226,230,236,0.7)' : 'none' }}>
                   <a
                     href="#"
-                    onClick={viewAll('news')}
+                    onClick={(e) => { e.preventDefault(); onOpenArticle(item) }}
                     className="flex items-center gap-3 px-2 sm:px-3 py-3 rounded-xl transition-all"
                     style={{ textDecoration: 'none' }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(238,241,245,0.60)' }}
@@ -976,106 +986,55 @@ function NoticesNews({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) 
 // Card data shared by the committee and member-directory showcases
 type ShowcasePerson = { name: string; role: string; company: string; img: string | null }
 
-/** Committee carousel chrome: ◀  ▶ only. */
+/** Committee carousel chrome: max 5 position dots (no prev/next buttons). */
 function CarouselScrollBar({
   index,
   count,
-  onPrev,
-  onNext,
   onDot,
 }: {
   index: number
   count: number
-  onPrev: () => void
-  onNext: () => void
+  onPrev?: () => void
+  onNext?: () => void
   onDot?: (i: number) => void
 }) {
   if (count <= 1) return null
   const active = ((index % count) + count) % count
-  const btn: React.CSSProperties = {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    border: '1.5px solid #C8CED6',
-    background: 'transparent',
-    color: '#0E1116',
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    transition: 'border-color 180ms, background 180ms, color 180ms',
+  const maxDots = Math.min(5, count)
+  // Sliding window of up to 5 dots around the active slide
+  let start = 0
+  if (count > maxDots) {
+    start = Math.max(0, Math.min(active - Math.floor(maxDots / 2), count - maxDots))
   }
+  const dots = Array.from({ length: maxDots }, (_, i) => start + i)
+
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-        marginTop: 28,
-        padding: '0 16px',
-      }}
+      className="flex items-center justify-center gap-1.5"
+      style={{ marginTop: 28, padding: '0 16px' }}
     >
-      <button
-        type="button"
-        aria-label="Previous"
-        onClick={onPrev}
-        style={btn}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#E10B17'
-          e.currentTarget.style.color = '#E10B17'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#C8CED6'
-          e.currentTarget.style.color = '#0E1116'
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-
-      {/* Hero-style position dots between the slide buttons */}
-      <div className="flex items-center justify-center gap-1.5" style={{ minWidth: 0 }}>
-        {Array.from({ length: count }, (_, i) => {
-          const on = active === i
-          return (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Show slide ${i + 1}`}
-              aria-current={on || undefined}
-              onClick={() => onDot?.(i)}
-              style={{
-                width: on ? 22 : 6,
-                height: 6,
-                borderRadius: 999,
-                border: 'none',
-                padding: 0,
-                cursor: onDot ? 'pointer' : 'default',
-                background: on ? '#E10B17' : '#C8CED6',
-                transition: 'width 300ms, background 300ms',
-              }}
-            />
-          )
-        })}
-      </div>
-
-      <button
-        type="button"
-        aria-label="Next"
-        onClick={onNext}
-        style={btn}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#E10B17'
-          e.currentTarget.style.color = '#E10B17'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#C8CED6'
-          e.currentTarget.style.color = '#0E1116'
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
+      {dots.map((i) => {
+        const on = active === i
+        return (
+          <button
+            key={i}
+            type="button"
+            aria-label={`Show slide ${i + 1}`}
+            aria-current={on || undefined}
+            onClick={() => onDot?.(i)}
+            style={{
+              width: on ? 22 : 6,
+              height: 6,
+              borderRadius: 999,
+              border: 'none',
+              padding: 0,
+              cursor: onDot ? 'pointer' : 'default',
+              background: on ? '#E10B17' : '#C8CED6',
+              transition: 'width 300ms, background 300ms',
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -1122,18 +1081,52 @@ function coverflowSlotX(slot: number, cardW: number, gapRatio = 0.04) {
   return sign * Math.round(x)
 }
 
+/** Shortest ring distance from → to (for one-step-at-a-time dot jumps). */
+function coverflowShortest(from: number, to: number, len: number) {
+  if (len < 2) return { steps: 0, sign: 0 as -1 | 0 | 1 }
+  let diff = ((to - from) % len + len) % len
+  if (diff > len / 2) diff -= len
+  return { steps: Math.abs(diff), sign: Math.sign(diff) as -1 | 0 | 1 }
+}
+
+/** Wait for one coverflow step to finish before the next (matches card transition). */
+const CF_DOT_STEP_MS = 720
+
 function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   const len = people.length
   const items = [...people, ...people, ...people]
   const viewportRef = useRef<HTMLDivElement>(null)
   const touchX = useRef<number | null>(null)
   const prevActive = useRef(len)
+  const activeRef = useRef(len)
+  const steppingRef = useRef(false)
   const [vw, setVw] = useState(390)
   const [active, setActive] = useState(len)
   const [animate, setAnimate] = useState(true)
   const [paused, setPaused] = useState(false)
   const [exitI, setExitI] = useState<number | null>(null)
   const [exitDist, setExitDist] = useState<-2 | 2>(-2)
+  // Multi-card jump (dot click): cards visible before the jump slide out instead of vanishing
+  const [jumpFrom, setJumpFrom] = useState<number | null>(null)
+
+  useEffect(() => { activeRef.current = active }, [active])
+
+  /** Dot click: bring that person straight to the centre in one slide. */
+  const goToPerson = (target: number) => {
+    if (steppingRef.current || len < 2) return
+    const goal = ((target % len) + len) % len
+    const cur = ((activeRef.current % len) + len) % len
+    if (cur === goal) return
+    const { steps, sign } = coverflowShortest(cur, goal, len)
+    if (!steps || !sign) return
+    const from = activeRef.current
+    if (steps > 1) {
+      steppingRef.current = true
+      setJumpFrom(from)
+      window.setTimeout(() => { steppingRef.current = false; setJumpFrom(null) }, CF_DOT_STEP_MS - 60)
+    }
+    setActive(from + sign * steps)
+  }
 
   useEffect(() => {
     const el = viewportRef.current
@@ -1159,7 +1152,7 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
   useLayoutEffect(() => {
     const prev = prevActive.current
     const d = active - prev
-    if (d !== 0) {
+    if (Math.abs(d) === 1 || (d !== 0 && !steppingRef.current && Math.abs(d) >= len)) {
       const dist = (d > 0 ? -2 : 2) as -2 | 2
       setExitI(prev + dist)
       setExitDist(dist)
@@ -1215,8 +1208,9 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
             {items.map((m, i) => {
               const dist = i - active
               const isExit = exitI === i
+              const leaving = jumpFrom !== null && Math.abs(i - jumpFrom) <= 2
               // Keep 5 in layout; hold the covered outer card until neighbour lands
-              if (!isExit && Math.abs(dist) > 2) return null
+              if (!isExit && !leaving && Math.abs(dist) > 2) return null
               const useDist = isExit ? exitDist : dist
               const isActive = useDist === 0
               const scale = coverflowScale(useDist)
@@ -1270,12 +1264,7 @@ function CommitteeCarouselMobile({ people }: { people: ShowcasePerson[] }) {
       <CarouselScrollBar
         index={active}
         count={len}
-        onPrev={() => setActive((a) => a - 1)}
-        onNext={() => setActive((a) => a + 1)}
-        onDot={(i) => {
-          const band = Math.floor(active / len) * len
-          setActive(band + i)
-        }}
+        onDot={goToPerson}
       />
     </div>
   )
@@ -1292,8 +1281,11 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
   const [vw, setVw] = useState(1120)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
+  const steppingRef = useRef(false)
   // Frozen under the neighbour until cover finishes — set in the same tick as active
   const [exitCard, setExitCard] = useState<null | { i: number; slot: -2 | 2 }>(null)
+  // Multi-card jump (dot click): cards visible before the jump slide out instead of vanishing
+  const [jumpFrom, setJumpFrom] = useState<number | null>(null)
 
   useLayoutEffect(() => {
     const el = viewportRef.current
@@ -1321,8 +1313,27 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
     prevActive.current = a
     const next = a + dir
     activeRef.current = next
-    setExitCard(exitI >= 0 ? { i: exitI, slot: exitSlot } : null)
+    if (Math.abs(dir) === 1) {
+      setExitCard(exitI >= 0 ? { i: exitI, slot: exitSlot } : null)
+      setJumpFrom(null)
+    } else {
+      setExitCard(null)
+      setJumpFrom(a)
+    }
     setActive(next)
+  }
+
+  /** Dot click: bring that person straight to the centre in one slide. */
+  const goToPerson = (target: number) => {
+    if (steppingRef.current || len < 2) return
+    const goal = ((target % len) + len) % len
+    const cur = ((activeRef.current % len) + len) % len
+    if (cur === goal) return
+    const { steps, sign } = coverflowShortest(cur, goal, len)
+    if (!steps || !sign) return
+    steppingRef.current = true
+    stepBy(sign * steps)
+    window.setTimeout(() => { steppingRef.current = false; setJumpFrom(null) }, CF_DOT_STEP_MS)
   }
 
   useEffect(() => {
@@ -1429,7 +1440,8 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
           {items.map((m, i) => {
             if (exitCard && exitCard.i === i) return null
             const slot = slotOf(i, active)
-            if (Math.abs(slot) > 2) return null
+            const leaving = jumpFrom !== null && Math.abs(slotOf(i, jumpFrom)) <= 2
+            if (Math.abs(slot) > 2 && !leaving) return null
             const wrapped = slotOf(i, prevActive.current) - delta !== slot
             return renderCard(i, m, slot, { wrapped })
           })}
@@ -1439,12 +1451,7 @@ function CommitteeCarouselDesktop({ people, reverse = false }: { people: Showcas
       <CarouselScrollBar
         index={active}
         count={len}
-        onPrev={() => stepBy(-1)}
-        onNext={() => stepBy(1)}
-        onDot={(i) => {
-          const cur = ((active % len) + len) % len
-          stepBy(i - cur)
-        }}
+        onDot={goToPerson}
       />
     </div>
   )
@@ -1525,8 +1532,8 @@ function Leadership({ onViewCommittee }: { onViewCommittee?: () => void }) {
   // Heading copy: Website Maintenance → Home → Committee. People: About → Committee.
   const h = useHome().home.committee
   const { about, loading } = useAbout()
-  // Home leadership = running Executive only (API hides roster outside term dates).
-  const roster = about.executive_committee || []
+  // Home leadership = Founding Executive Committee roster (About → Founding Committee).
+  const roster = about.founding_committee || []
   const people: ShowcasePerson[] = roster.map((m) => ({
     name: m.name,
     role: m.designation || m.tier || 'Committee',
@@ -2060,6 +2067,13 @@ function AppRoutes() {
   const [searchOpen, setSearchOpen] = useState(false)
   const { memberNo: loggedInMemberNo, signOut: clearLoggedInMember } = useMemberSession()
 
+  // Open Media Centre item (/media/<tab>/<item>) + the clicked article, to show it before the API answers
+  const [mediaItem, setMediaItem] = useState<string | null>(initial.mediaItem ?? null)
+  const [mediaArticle, setMediaArticle] = useState<Article | null>(null)
+  // Resources tab + open report (/resources, /resources/dues, /resources/reports/<id>-<slug>)
+  const [resourceTab, setResourceTab] = useState<ResourceTab>(initial.resourceTab ?? 'reports')
+  const [resourceItem, setResourceItem] = useState<string | null>(initial.resourceItem ?? null)
+
   const go = (
     id: AppPage,
     tab: MediaTab = 'notices',
@@ -2071,6 +2085,10 @@ function AppRoutes() {
     const nextPortal = id === 'member-portal' ? portal : 'dashboard'
     const nextQ = id === 'search' ? (q ?? searchQuery) : ''
     setPage(id)
+    setMediaArticle(null)
+    setMediaItem(null)
+    setResourceTab('reports')
+    setResourceItem(null)
     if (id === 'media') setMediaTab(tab)
     if (id === 'member-portal') setPortalPage(nextPortal)
     if (id === 'search') setSearchQuery(nextQ)
@@ -2103,6 +2121,27 @@ function AppRoutes() {
   const openMedia = (tab: MediaTab) => {
     go('media', tab)
   }
+  const openArticle = (a: Article) => {
+    go('media', 'news')
+    // after go(), which clears these and points the URL at /media/news
+    setMediaArticle(a)
+    setMediaItem(a.slug)
+    syncMediaUrl('news', a.slug, 'replace')
+  }
+  // Tab / item changed inside the Media Centre → keep the URL in step
+  const onMediaChange = (tab: MediaTab, item: string | null, articleHint?: Article | null) => {
+    setMediaTab(tab)
+    setMediaItem(item)
+    setMediaArticle(articleHint ?? null)
+    syncMediaUrl(tab, item, 'push')
+  }
+
+  // Tab / report changed inside Resources → keep the URL in step
+  const onResourcesChange = (tab: ResourceTab, item: string | null, mode: 'push' | 'replace' = 'push') => {
+    setResourceTab(tab)
+    setResourceItem(item)
+    syncResourcesUrl(tab, item, mode)
+  }
 
   const navigateApp = (id: AppPage) => {
     go(id, id === 'media' ? mediaTab : 'notices')
@@ -2114,13 +2153,19 @@ function AppRoutes() {
       const route = readRoute()
       setPage(route.page as AppPage)
       setMediaTab(route.mediaTab)
+      setMediaArticle(null)
+      setMediaItem(route.mediaItem ?? null)
+      setResourceTab(route.resourceTab ?? 'reports')
+      setResourceItem(route.resourceItem ?? null)
       setPortalPage(route.portalPage)
       setSearchQuery(readSearchQuery())
       window.scrollTo({ top: 0, behavior: 'auto' })
     }
     window.addEventListener('popstate', onPop)
     // Normalize URL on first paint (e.g. `/home` → `/`, `/portal/dashboard` → `/portal`)
-    syncUrl(initial.page, initial.mediaTab, 'replace', initial.portalPage, readSearchQuery())
+    if (initial.page === 'media' && initial.mediaItem) syncMediaUrl(initial.mediaTab, initial.mediaItem, 'replace')
+    else if (initial.page === 'resources') syncResourcesUrl(initial.resourceTab ?? 'reports', initial.resourceItem ?? null, 'replace')
+    else syncUrl(initial.page, initial.mediaTab, 'replace', initial.portalPage, readSearchQuery())
     return () => window.removeEventListener('popstate', onPop)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -2234,7 +2279,7 @@ function AppRoutes() {
       <>
         {nav()}
         {searchChrome}
-        <ResourcesPage />
+        <ResourcesPage tab={resourceTab} item={resourceItem} onChange={onResourcesChange} />
       </>
     )
   }
@@ -2244,7 +2289,12 @@ function AppRoutes() {
       <>
         {nav()}
         {searchChrome}
-        <MediaCentrePage key={mediaTab} initialTab={mediaTab} />
+        <MediaCentrePage
+          tab={mediaTab}
+          item={mediaItem}
+          articleHint={mediaTab === 'news' ? mediaArticle : null}
+          onChange={onMediaChange}
+        />
       </>
     )
   }
@@ -2322,8 +2372,8 @@ function AppRoutes() {
       {nav()}
         {searchChrome}
       <Hero />
-      <Leadership onViewCommittee={() => go('committee:executive')} />
-      <NoticesNews onOpenMedia={openMedia} />
+      <Leadership onViewCommittee={() => go('committee:founding')} />
+      <NoticesNews onOpenMedia={openMedia} onOpenArticle={openArticle} />
       <MemberDirectory onViewAll={() => go('member-list')} />
       <Facilities onSelectFacility={(id) => go(`facility:${id}` as AppPage)} />
       <Highlights />

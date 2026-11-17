@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
+import { articlePath } from '../lib/routing'
 import Footer from './Footer'
 import SubTabs from './SubTabs'
 import {
@@ -222,14 +224,19 @@ function PDFViewer({ notice, onClose }: { notice: NoticeEntry; onClose: () => vo
 }
 
 
-function NoticesSection() {
+type ItemProps = { item: string | null; onItem: (item: string | null) => void }
+
+function NoticesSection({ item, onItem }: ItemProps) {
   const [yearFilter, setYearFilter] = useState('')
   const [catFilter, setCatFilter] = useState<string>('All')
   const [search, setSearch] = useState('')
-  const [viewing, setViewing] = useState<NoticeEntry | null>(null)
   const { data, error, loading, reload } = useNotices()
 
   if (!data) return loading ? <Loading /> : <LoadError message={error || 'Could not load notices.'} onRetry={reload} />
+
+  // Open notice comes from the URL (/media/notices/<id>)
+  const viewing = item ? data.notices.find((n) => String(n.id) === item) ?? null : null
+  const setViewing = (n: NoticeEntry | null) => onItem(n ? String(n.id) : null)
 
   const NOTICES = data.notices
   const NOTICE_CATEGORIES = data.categories
@@ -379,9 +386,88 @@ function NoticesSection() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // NEWS & EVENTS
 // ═══════════════════════════════════════════════════════════════════════════════
-function ArticleDetail({ article: summary, onBack, onOpen }: { article: Article; onBack: () => void; onOpen: (a: Article) => void }) {
-  const { data } = useNewsDetail(summary.slug)
-  const article = data?.article ?? summary
+// ─── Share row on article details: Facebook · WhatsApp · X · LinkedIn · Copy link ───
+const SHARE_ICON: Record<string, React.ReactNode> = {
+  facebook: <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>,
+  whatsapp: <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35zM12.04 21.5h-.01a9.45 9.45 0 01-4.82-1.32l-.35-.21-3.58.94.96-3.49-.23-.36a9.43 9.43 0 01-1.45-5.03c0-5.22 4.25-9.47 9.48-9.47a9.4 9.4 0 016.7 2.78 9.4 9.4 0 012.77 6.7c0 5.23-4.25 9.47-9.47 9.47zm8.06-17.54A11.32 11.32 0 0012.04.62C5.76.62.65 5.73.65 12c0 2.01.52 3.97 1.52 5.7L.55 23.62l6.04-1.58a11.36 11.36 0 005.44 1.39h.01c6.28 0 11.39-5.11 11.39-11.39 0-3.04-1.19-5.9-3.33-8.05z"/></svg>,
+  x: <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>,
+  linkedin: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>,
+  link: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>,
+  check: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  more: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>,
+}
+const SHARE_BRAND: Record<string, string> = { facebook: '#1877F2', whatsapp: '#25D366', x: '#0E1116', linkedin: '#0A66C2', link: '#E10B17', more: '#E10B17' }
+
+function ShareButton({ id, label, href, onClick, children }: { id: string; label: string; href?: string; onClick?: () => void; children: React.ReactNode }) {
+  const [hover, setHover] = useState(false)
+  const style: React.CSSProperties = {
+    width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+    background: hover ? SHARE_BRAND[id] : T.surface100,
+    border: `1px solid ${hover ? SHARE_BRAND[id] : T.ink100}`,
+    color: hover ? '#FFFFFF' : T.ink400,
+    transition: 'background 160ms, border-color 160ms, color 160ms, transform 160ms',
+    transform: hover ? 'translateY(-2px)' : 'none',
+    textDecoration: 'none',
+  }
+  const events = { onMouseEnter: () => setHover(true), onMouseLeave: () => setHover(false) }
+  return href
+    ? <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} style={style} {...events}>{children}</a>
+    : <button type="button" onClick={onClick} aria-label={label} title={label} style={style} {...events}>{children}</button>
+}
+
+function ShareButtons({ slug, title }: { slug: string; title: string }) {
+  const [copied, setCopied] = useState(false)
+  const url = typeof window !== 'undefined' ? `${window.location.origin}${articlePath(slug)}` : articlePath(slug)
+  const u = encodeURIComponent(url)
+  const t = encodeURIComponent(title)
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // Fallback for browsers without the async clipboard (or non-HTTPS)
+      const ta = document.createElement('textarea')
+      ta.value = url
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch { /* ignore */ }
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1800)
+  }
+
+  return (
+    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+      <span className="eyebrow hidden sm:inline" style={{ fontSize: 10, color: T.ink200, marginRight: 2 }}>Share</span>
+      <ShareButton id="facebook" label="Share on Facebook" href={`https://www.facebook.com/sharer/sharer.php?u=${u}`}>{SHARE_ICON.facebook}</ShareButton>
+      <ShareButton id="whatsapp" label="Share on WhatsApp" href={`https://wa.me/?text=${t}%20${u}`}>{SHARE_ICON.whatsapp}</ShareButton>
+      <ShareButton id="x" label="Share on X" href={`https://twitter.com/intent/tweet?url=${u}&text=${t}`}>{SHARE_ICON.x}</ShareButton>
+      <ShareButton id="linkedin" label="Share on LinkedIn" href={`https://www.linkedin.com/sharing/share-offsite/?url=${u}`}>{SHARE_ICON.linkedin}</ShareButton>
+      <ShareButton id="link" label={copied ? 'Link copied' : 'Copy link'} onClick={copy}>{copied ? SHARE_ICON.check : SHARE_ICON.link}</ShareButton>
+      {canNativeShare && (
+        <ShareButton id="more" label="More share options" onClick={() => { navigator.share({ title, url }).catch(() => {}) }}>{SHARE_ICON.more}</ShareButton>
+      )}
+      {copied && (
+        <span
+          role="status"
+          style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, fontFamily: 'CKCL', fontSize: 12, fontWeight: 600, color: '#FFFFFF', background: T.ink900, borderRadius: 8, padding: '6px 10px', whiteSpace: 'nowrap', zIndex: 5 }}
+        >
+          Link copied
+        </span>
+      )}
+    </div>
+  )
+}
+
+function ArticleDetail({ slug, article: summary, onBack, onOpen }: { slug: string; article?: Article | null; onBack: () => void; onOpen: (a: Article) => void }) {
+  const { data, error, loading, reload } = useNewsDetail(slug)
+  const article = data?.article ?? summary ?? null
+  // Opened straight from the URL (refresh / shared link): wait for the API
+  if (!article) return loading ? <Loading /> : <LoadError message={error || 'Could not load this news item.'} onRetry={reload} />
   const related = data?.related ?? []
   const cc = CATEGORY_CHIP_COLORS[article.category] ?? { bg: T.surface100, color: T.ink400 }
   const bodyParagraphs = article.body ?? []
@@ -397,7 +483,8 @@ function ArticleDetail({ article: summary, onBack, onOpen }: { article: Article;
         Back to News & Events
       </button>
 
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      {/* Full content width (same as the page container) */}
+      <div style={{ width: '100%' }}>
         {/* Hero image */}
         {article.image && (
           <div className="h-[240px] sm:h-[480px]" style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 32 }}>
@@ -409,15 +496,7 @@ function ArticleDetail({ article: summary, onBack, onOpen }: { article: Article;
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <span className="eyebrow" style={{ fontSize: 10, color: T.ink200 }}>{article.date}</span>
           <span style={{ fontFamily: 'CKCL', fontWeight: 500, fontSize: 9, letterSpacing: '0.06em', color: cc.color, background: cc.bg, borderRadius: 999, padding: '4px 10px' }}>{article.category.toUpperCase()}</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-            {['facebook', 'twitter', 'link'].map((s) => (
-              <button key={s} style={{ width: 32, height: 32, borderRadius: '50%', background: T.surface100, border: `1px solid ${T.ink100}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.ink400} strokeWidth="2">
-                  {s === 'link' ? <><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></> : <circle cx="12" cy="12" r="10"/>}
-                </svg>
-              </button>
-            ))}
-          </div>
+          <ShareButtons slug={article.slug} title={article.title} />
         </div>
 
         {/* Title */}
@@ -462,10 +541,22 @@ function ArticleDetail({ article: summary, onBack, onOpen }: { article: Article;
   )
 }
 
-function NewsSection() {
-  const [viewing, setViewing] = useState<Article | null>(null)
+function NewsSection({
+  item: slug,
+  articleHint = null,
+  onArticle,
+}: {
+  item: string | null
+  articleHint?: Article | null
+  onArticle: (a: Article | null) => void
+}) {
+  // Open article comes from the URL (/media/news/<slug>); the hint shows it instantly while the API loads
+  const setViewing = onArticle
   const { data, error, loading, reload } = useNewsList()
-  if (viewing) return <ArticleDetail key={viewing.slug} article={viewing} onBack={() => setViewing(null)} onOpen={setViewing} />
+  if (slug) {
+    const summary = articleHint?.slug === slug ? articleHint : data?.featured?.slug === slug ? data.featured : data?.articles.find((a) => a.slug === slug) ?? null
+    return <ArticleDetail key={slug} slug={slug} article={summary} onBack={() => setViewing(null)} onOpen={setViewing} />
+  }
   if (!data) return loading ? <Loading /> : <LoadError message={error || 'Could not load news.'} onRetry={reload} />
   if (!data.featured) return <StateBox>No news has been published yet.</StateBox>
 
@@ -539,51 +630,73 @@ function Lightbox({ state, onChange, onClose }: { state: NonNullable<LightboxSta
   const { album, index } = state
   const photo = album.photos[index]
 
+  const last = album.photos.length - 1
+  const prev = useCallback(() => onChange(Math.max(0, index - 1)), [index, onChange])
+  const next = useCallback(() => onChange(Math.min(last, index + 1)), [index, last, onChange])
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowLeft') onChange(Math.max(0, index - 1))
-      if (e.key === 'ArrowRight') onChange(Math.min(album.photos.length - 1, index + 1))
+      if (e.key === 'ArrowLeft') prev()
+      if (e.key === 'ArrowRight') next()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [index, album, onChange, onClose])
+  }, [prev, next, onClose])
 
-  return (
+  // Lock page scroll while open; warm the neighbouring photos so the next click is instant.
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [])
+  useEffect(() => {
+    for (const i of [index - 1, index + 1]) {
+      const src = album.photos[i]?.src
+      if (src) { const img = new Image(); img.src = src }
+    }
+  }, [index, album])
+
+  // Prev/next sit at fixed spots on the screen edges, so they never move when the photo size changes.
+  const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
+    ...glassBtn, position: 'fixed', top: '50%', transform: 'translateY(-50%)', [side]: 'max(12px, 2vw)', width: 48, height: 48, zIndex: 2, cursor: 'pointer',
+  })
+
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(14,17,22,0.88)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={album.name}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(14,17,22,0.88)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}
     >
       {/* Top-right controls */}
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: 8, zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
         <a href={photo.src} download target="_blank" rel="noopener" title="Download photo" style={glassBtn}>{downloadIcon}</a>
-        <button style={glassBtn} onClick={onClose}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button type="button" aria-label="Close" style={{ ...glassBtn, cursor: 'pointer' }} onClick={onClose}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
-      {/* Image */}
-      <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh', display: 'flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-        <img src={photo.src} alt={photo.caption ?? album.name} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 24px 80px rgba(0,0,0,0.50)', display: 'block' }} />
+      {/* Image (full photo, never cropped) */}
+      <img
+        key={photo.src}
+        src={photo.src}
+        alt={photo.caption ?? album.name}
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 'calc(100vw - 140px)', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 24px 80px rgba(0,0,0,0.50)', display: 'block' }}
+      />
 
-        {/* Prev */}
-        {index > 0 && (
-          <button
-            onClick={() => onChange(index - 1)}
-            style={{ ...glassBtn, position: 'absolute', left: -52, width: 44, height: 44 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-        )}
-
-        {/* Next */}
-        {index < album.photos.length - 1 && (
-          <button
-            onClick={() => onChange(index + 1)}
-            style={{ ...glassBtn, position: 'absolute', right: -52, width: 44, height: 44 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        )}
-      </div>
+      {index > 0 && (
+        <button type="button" aria-label="Previous photo" style={navBtn('left')} onClick={(e) => { e.stopPropagation(); prev() }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      )}
+      {index < last && (
+        <button type="button" aria-label="Next photo" style={navBtn('right')} onClick={(e) => { e.stopPropagation(); next() }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      )}
 
       {/* Caption bar */}
       <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 999, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 16 }} onClick={(e) => e.stopPropagation()}>
@@ -595,15 +708,17 @@ function Lightbox({ state, onChange, onClose }: { state: NonNullable<LightboxSta
       <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
         <span style={{ fontFamily: 'CKCL', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>← → to navigate · ESC to close</span>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
-function AlbumDetail({ album: summary, onBack }: { album: AlbumEntry; onBack: () => void }) {
+function AlbumDetail({ slug, album: summary, onBack }: { slug: string; album?: AlbumEntry | null; onBack: () => void }) {
   const [lightbox, setLightbox] = useState<number | null>(null)
   const headerRef = useRef<HTMLDivElement>(null)
-  const { data, error, loading, reload } = useAlbumDetail(summary.slug)
+  const { data, error, loading, reload } = useAlbumDetail(slug)
   const album = data?.album
+  const albumName = album?.name ?? summary?.name ?? ''
 
   return (
     <>
@@ -633,35 +748,38 @@ function AlbumDetail({ album: summary, onBack }: { album: AlbumEntry; onBack: ()
             Albums
           </button>
           <span style={{ color: T.ink200 }}>·</span>
-          <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 18, color: T.ink900 }}>{summary.name}</div>
-          <span className="eyebrow" style={{ fontSize: 10, color: T.ink200, marginLeft: 4 }}>{album?.photos.length ?? summary.count} PHOTOS</span>
+          <div style={{ fontFamily: 'CKCL', fontWeight: 600, fontSize: 18, color: T.ink900 }}>{albumName}</div>
+          <span className="eyebrow" style={{ fontSize: 10, color: T.ink200, marginLeft: 4 }}>{album?.photos.length ?? summary?.count ?? 0} PHOTOS</span>
         </div>
       </div>
 
-      {/* Masonry-style grid with varied heights */}
+      {/* Uniform grid: every tile the same 3:2 size; click opens the full photo in the lightbox */}
       {!album && (loading ? <Loading /> : <LoadError message={error || 'Could not load this album.'} onRetry={reload} />)}
-      {album && <div className="masonry-grid">
+      {album && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {album.photos.map((photo, i) => (
-          <div
+          <button
+            type="button"
             key={i}
-            className="mb-3 sm:mb-4" style={{ breakInside: 'avoid', borderRadius: 14, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
+            aria-label={`Open photo ${i + 1} of ${album.photos.length}`}
+            style={{ aspectRatio: '3/2', borderRadius: 14, overflow: 'hidden', cursor: 'zoom-in', position: 'relative', padding: 0, border: 0, background: T.surface100, display: 'block', width: '100%' }}
             onClick={() => setLightbox(i)}
           >
-            <img src={photo.src} alt={photo.caption ?? summary.name} loading="lazy" style={{ width: '100%', display: 'block', transition: 'transform 300ms' }}
+            <img src={photo.src} alt={photo.caption ?? albumName} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 300ms' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)' }} />
-          </div>
+          </button>
         ))}
       </div>}
     </>
   )
 }
 
-function GallerySection() {
-  const [selectedAlbum, setSelectedAlbum] = useState<AlbumEntry | null>(null)
+function GallerySection({ item, onItem }: ItemProps) {
   const { data, error, loading, reload } = useAlbums()
+  const setSelectedAlbum = (a: AlbumEntry | null) => onItem(a ? a.slug : null)
 
-  if (selectedAlbum) return <AlbumDetail album={selectedAlbum} onBack={() => setSelectedAlbum(null)} />
+  // Open album comes from the URL (/media/gallery/<slug>)
+  if (item) return <AlbumDetail key={item} slug={item} album={data?.albums.find((a) => a.slug === item) ?? null} onBack={() => setSelectedAlbum(null)} />
   if (!data) return loading ? <Loading /> : <LoadError message={error || 'Could not load the gallery.'} onRetry={reload} />
   if (!data.albums.length) return <StateBox>No photo albums yet.</StateBox>
   const ALBUMS = data.albums
@@ -771,14 +889,16 @@ function VideoModal({ video, onClose }: { video: VideoEntry; onClose: () => void
   )
 }
 
-function VideoSection() {
-  const [playing, setPlaying] = useState<VideoEntry | null>(null)
+function VideoSection({ item, onItem }: ItemProps) {
   const [hovered, setHovered] = useState<number | null>(null)
   const { data, error, loading, reload } = useVideos()
 
   if (!data) return loading ? <Loading /> : <LoadError message={error || 'Could not load videos.'} onRetry={reload} />
   if (!data.videos.length) return <StateBox>No videos yet.</StateBox>
   const VIDEOS = data.videos
+  // Playing video comes from the URL (/media/video/<id>)
+  const playing = item ? VIDEOS.find((v) => String(v.id) === item) ?? null : null
+  const setPlaying = (v: VideoEntry | null) => onItem(v ? String(v.id) : null)
 
   return (
     <>
@@ -846,14 +966,29 @@ const glassBtn: React.CSSProperties = {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function MediaCentrePage({ initialTab = 'notices' }: { initialTab?: MediaTab }) {
-  const [tab, setTab] = useState<MediaTab>(initialTab)
+/**
+ * Media Centre is driven by the URL: /media/<tab> for a tab, /media/<tab>/<item> for an open
+ * notice, article, album or video. The app owns tab + item and syncs them to the address bar,
+ * so a refresh or shared link reopens the same view.
+ */
+export default function MediaCentrePage({
+  tab,
+  item = null,
+  articleHint = null,
+  onChange,
+}: {
+  tab: MediaTab
+  item?: string | null
+  articleHint?: Article | null
+  onChange: (tab: MediaTab, item: string | null, articleHint?: Article | null) => void
+}) {
   const contentRef = useRef<HTMLDivElement>(null)
 
   const handleTab = useCallback((t: MediaTab) => {
-    setTab(t)
+    onChange(t, null)
     contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
+  }, [onChange])
+  const onItem = (next: string | null) => onChange(tab, next)
 
   return (
     <div style={{ background: T.surface50, minHeight: '100vh' }}>
@@ -863,10 +998,10 @@ export default function MediaCentrePage({ initialTab = 'notices' }: { initialTab
         ref={contentRef}
         style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}
       >
-        {tab === 'notices' && <NoticesSection />}
-        {tab === 'news'    && <NewsSection />}
-        {tab === 'gallery' && <GallerySection />}
-        {tab === 'video'   && <VideoSection />}
+        {tab === 'notices' && <NoticesSection item={item} onItem={onItem} />}
+        {tab === 'news'    && <NewsSection item={item} articleHint={articleHint} onArticle={(a) => onChange('news', a?.slug ?? null, a)} />}
+        {tab === 'gallery' && <GallerySection item={item} onItem={onItem} />}
+        {tab === 'video'   && <VideoSection item={item} onItem={onItem} />}
       </div>
 
       <Footer />

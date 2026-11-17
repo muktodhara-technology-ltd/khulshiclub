@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Footer from './Footer'
 import SubTabs from './SubTabs'
 import { useReports, type Report } from '../lib/resources'
@@ -20,6 +20,7 @@ import {
   type DuesPayAccount,
 } from '../lib/dues'
 import { SITE_W } from '../lib/layout'
+import { reportIdFromKey, reportKey, type ResourceTab } from '../lib/routing'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -33,7 +34,6 @@ const T = {
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-type ResourceTab = 'reports' | 'dues'
 const TABS: { id: ResourceTab; label: string }[] = [
   { id: 'reports', label: 'Annual Reports' },
   { id: 'dues',    label: 'Club Dues' },
@@ -117,9 +117,19 @@ function ReportViewer({ report, onClose }: { report: Report; onClose: () => void
 }
 
 // ─── Annual Reports Section ───────────────────────────────────────────────────
-function ReportsSection() {
-  const [viewing, setViewing] = useState<Report | null>(null)
+function ReportsSection({ item, onItem }: { item: string | null; onItem: (key: string | null, mode?: 'push' | 'replace') => void }) {
   const { data, error, loading, reload } = useReports()
+  // Open report comes from the URL (/resources/reports/<id>-<slug>)
+  const all = data ? [data.featured, ...data.reports].filter(Boolean) as Report[] : []
+  const viewing = item ? all.find((r) => String(r.id) === reportIdFromKey(item)) ?? null : null
+  const setViewing = (r: Report | null) => onItem(r ? reportKey(r) : null)
+
+  // Unknown report in the URL → back to the list; old title in the URL → current one
+  useEffect(() => {
+    if (!data || !item) return
+    if (!viewing) onItem(null, 'replace')
+    else if (reportKey(viewing) !== item) onItem(reportKey(viewing), 'replace')
+  }, [data, item, viewing, onItem])
 
   if (!data) {
     return loading ? (
@@ -1505,8 +1515,13 @@ const overlayBtn: React.CSSProperties = {
   cursor: 'pointer', transition: 'background 140ms',
 }
 
-export default function ResourcesPage() {
-  const [tab, setTab] = useState<ResourceTab>('reports')
+export default function ResourcesPage({ tab, item, onChange }: {
+  tab: ResourceTab
+  item: string | null
+  onChange: (tab: ResourceTab, item: string | null, mode?: 'push' | 'replace') => void
+}) {
+  const setTab = (t: ResourceTab) => { if (t !== tab || item) onChange(t, null) }
+  const onItem = useCallback((key: string | null, mode: 'push' | 'replace' = 'push') => onChange('reports', key, mode), [onChange])
   // Held here so switching tabs doesn't drop a verified session
   const [duesAccess, setDuesAccess] = useState<DuesAccess>(null)
 
@@ -1515,7 +1530,7 @@ export default function ResourcesPage() {
       <PageHeader tab={tab} onTab={setTab} />
 
       <div style={{ maxWidth: SITE_W, margin: '0 auto', padding: 'clamp(40px,5vw,64px) clamp(24px,5vw,80px)' }}>
-        {tab === 'reports' && <ReportsSection />}
+        {tab === 'reports' && <ReportsSection item={item} onItem={onItem} />}
         {tab === 'dues'    && <DuesGate access={duesAccess} onAccess={setDuesAccess} />}
       </div>
 
