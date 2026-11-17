@@ -17,7 +17,7 @@ import { useFacilitiesList } from './lib/facilities'
 import { useAlbums, useNotices, useNewsList, type Article } from './lib/media'
 import { useMemberSession } from './lib/memberSession'
 import { portalLogout } from './lib/portal'
-import { readRoute, readSearchQuery, syncUrl, syncMediaUrl, syncResourcesUrl, type ResourceTab, type MediaTab as RouteMediaTab, type PortalTab, type RoutedPage } from './lib/routing'
+import { readRoute, readSearchQuery, syncUrl, syncMediaUrl, mediaPath, syncResourcesUrl, type ResourceTab, type MediaTab as RouteMediaTab, type PortalTab, type RoutedPage } from './lib/routing'
 import { SITE_W } from './lib/layout'
 import SearchOverlay from './components/SearchOverlay'
 import PersonPortrait from './components/PersonPortrait'
@@ -447,29 +447,10 @@ function About() {
             </a>}
           </div>
 
-          {/* Right — 5 cols, stacked photos */}
-          <div className="lg:col-span-5 relative mt-6 lg:mt-0" style={{ minHeight: 400 }}>
-            {/* Back photo */}
-            <div style={{ borderRadius: 20, overflow: 'hidden', width: '85%', aspectRatio: '4/3', marginLeft: 'auto', background: '#EEF1F5' }}>
-              {a.photo_main ? (
-                <img src={a.photo_main} alt={a.heading || 'About the club'} className="w-full h-full object-cover"/>
-              ) : null}
-            </div>
-            {/* Front photo — offset and overlapping */}
-            <div
-              style={{
-                position: 'absolute', top: '38%', left: 0,
-                borderRadius: 20, overflow: 'hidden',
-                width: '65%', aspectRatio: '3/2',
-                background: '#EEF1F5',
-                boxShadow: '0 16px 48px -8px rgba(14,17,22,0.16)',
-              }}
-            >
-              {a.photo_small ? (
-                <img src={a.photo_small} alt={a.heading || 'About the club'} className="w-full h-full object-cover"/>
-              ) : null}
-              {/* EST. 2013 glass badge */}
-              {a.badge && <div
+          {/* Right — 5 cols. One photo → one large image; two photos → stacked, overlapping pair */}
+          {(() => {
+            const badge = a.badge && (
+              <div
                 className="glass-strong absolute"
                 style={{
                   bottom: 12, right: 12,
@@ -478,9 +459,48 @@ function About() {
                 }}
               >
                 <div className="eyebrow" style={{ fontSize: 10, color: '#0E1116' }}>{a.badge}</div>
-              </div>}
-            </div>
-          </div>
+              </div>
+            )
+            const photos = [a.photo_main, a.photo_small].filter(Boolean) as string[]
+
+            if (photos.length === 1) {
+              return (
+                <div className="lg:col-span-5 mt-6 lg:mt-0">
+                  <div className="relative" style={{ borderRadius: 20, overflow: 'hidden', width: '100%', aspectRatio: '4/3', background: '#EEF1F5', boxShadow: '0 16px 48px -8px rgba(14,17,22,0.12)' }}>
+                    <img src={photos[0]} alt={a.heading || 'About the club'} className="w-full h-full object-cover"/>
+                    {badge}
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <div className="lg:col-span-5 relative mt-6 lg:mt-0" style={{ minHeight: 400 }}>
+                {/* Back photo */}
+                <div style={{ borderRadius: 20, overflow: 'hidden', width: '85%', aspectRatio: '4/3', marginLeft: 'auto', background: '#EEF1F5' }}>
+                  {a.photo_main ? (
+                    <img src={a.photo_main} alt={a.heading || 'About the club'} className="w-full h-full object-cover"/>
+                  ) : null}
+                </div>
+                {/* Front photo — offset and overlapping */}
+                <div
+                  style={{
+                    position: 'absolute', top: '38%', left: 0,
+                    borderRadius: 20, overflow: 'hidden',
+                    width: '65%', aspectRatio: '3/2',
+                    background: '#EEF1F5',
+                    boxShadow: '0 16px 48px -8px rgba(14,17,22,0.16)',
+                  }}
+                >
+                  {a.photo_small ? (
+                    <img src={a.photo_small} alt={a.heading || 'About the club'} className="w-full h-full object-cover"/>
+                  ) : null}
+                  {/* EST. 2013 glass badge */}
+                  {badge}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       </div>
     </section>
@@ -1755,7 +1775,7 @@ function MembershipCTA() {
 }
 
 // ─── SECTION 7 — Gallery teaser ───────────────────────────────────────────────
-type HomeAlbum = { id: number; name: string; count: number; cover: string | null }
+type HomeAlbum = { id: number; slug: string; name: string; count: number; cover: string | null }
 
 // Bento spans per album slot. lg (4 cols): featured 2×2, tall and wide tiles interlock into a full 4×4.
 // Mobile (2 cols): featured and last tile span both columns, the rest pair up.
@@ -1770,13 +1790,14 @@ const ALBUM_SPANS = [
   'col-span-2',
 ]
 
-function Gallery({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) {
+function Gallery({ onOpenMedia, onOpenAlbum }: { onOpenMedia: (tab: MediaTab) => void; onOpenAlbum: (slug: string) => void }) {
   const g = useHome().home.gallery
   const linkProps = useLinkProps()
   // Same Photo Gallery API as Media Centre → Gallery tab
   const { data: albumsData } = useAlbums()
   const ALBUMS: HomeAlbum[] = (albumsData?.albums ?? []).slice(0, 8).map((a) => ({
     id: a.id,
+    slug: a.slug,
     name: a.name,
     count: a.count,
     cover: a.cover,
@@ -1829,8 +1850,8 @@ function Gallery({ onOpenMedia }: { onOpenMedia: (tab: MediaTab) => void }) {
             return (
               <a
                 key={album.id}
-                href="#"
-                onClick={open}
+                href={mediaPath('gallery', album.slug)}
+                onClick={(e) => { e.preventDefault(); onOpenAlbum(album.slug) }}
                 className={`album-tile relative overflow-hidden ${ALBUM_SPANS[i] ?? ''}`}
                 style={{ borderRadius: featured ? 24 : 18, background: '#D5DAE1', textDecoration: 'none' }}
               >
@@ -2128,6 +2149,12 @@ function AppRoutes() {
     setMediaItem(a.slug)
     syncMediaUrl('news', a.slug, 'replace')
   }
+  // Home → Photo Gallery tile: open that album's details (/media/gallery/<slug>)
+  const openAlbum = (slug: string) => {
+    go('media', 'gallery')
+    setMediaItem(slug) // after go(), which clears it
+    syncMediaUrl('gallery', slug, 'replace')
+  }
   // Tab / item changed inside the Media Centre → keep the URL in step
   const onMediaChange = (tab: MediaTab, item: string | null, articleHint?: Article | null) => {
     setMediaTab(tab)
@@ -2377,7 +2404,7 @@ function AppRoutes() {
       <MemberDirectory onViewAll={() => go('member-list')} />
       <Facilities onSelectFacility={(id) => go(`facility:${id}` as AppPage)} />
       <Highlights />
-      <Gallery onOpenMedia={openMedia} />
+      <Gallery onOpenMedia={openMedia} onOpenAlbum={openAlbum} />
       <About />
       <MembershipCTA />
       {/* Extra sections from admin — same design looped from API customSections */}
