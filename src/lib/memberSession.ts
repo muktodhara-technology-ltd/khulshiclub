@@ -1,6 +1,8 @@
 /**
  * Member portal session: Bearer token + profile snapshot from club/club-portal/auth/login.
- * Persisted in sessionStorage (tab lifetime).
+ * Persisted in localStorage so every tab of the site shares one sign-in and it survives
+ * closing the browser, until logout or the token's expires_at.
+ * (Was sessionStorage: a new tab, or going back to the site in another tab, looked signed out.)
  */
 import { useCallback, useEffect, useState } from 'react'
 
@@ -47,12 +49,38 @@ export type MemberSession = {
   phone?: string
 }
 
+/** Read the stored session; one-time move of an older tab-only (sessionStorage) session. */
+function readStored(): string | null {
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (raw) return raw
+    const legacy = sessionStorage.getItem(KEY)
+    if (legacy) {
+      localStorage.setItem(KEY, legacy)
+      sessionStorage.removeItem(KEY)
+    }
+    return legacy
+  } catch {
+    return null
+  }
+}
+
+function isExpired(expiresAt?: string | null) {
+  if (!expiresAt) return false
+  const t = Date.parse(expiresAt)
+  return Number.isFinite(t) && t <= Date.now()
+}
+
 function readRaw(): MemberSession | null {
   try {
-    const raw = sessionStorage.getItem(KEY)
+    const raw = readStored()
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<MemberSession>
     if (!parsed?.token || !parsed?.member?.id) return null
+    if (isExpired(parsed.expires_at)) {
+      try { localStorage.removeItem(KEY) } catch { /* ignore */ }
+      return null
+    }
     const memberNo = String(parsed.member.member_no || parsed.memberNo || '').toUpperCase()
     if (!memberNo) return null
     return {
@@ -78,8 +106,10 @@ export function getMemberToken(): string | null {
 
 export function setMemberSession(session: MemberSession | null) {
   try {
-    if (!session) sessionStorage.removeItem(KEY)
-    else {
+    if (!session) {
+      localStorage.removeItem(KEY)
+      sessionStorage.removeItem(KEY)
+    } else {
       const memberNo = String(session.member.member_no || session.memberNo || '').toUpperCase()
       const next: MemberSession = {
         token: session.token,
@@ -89,7 +119,7 @@ export function setMemberSession(session: MemberSession | null) {
         name: session.member.full_name || session.name || '',
         phone: session.member.phone || session.phone || '',
       }
-      sessionStorage.setItem(KEY, JSON.stringify(next))
+      localStorage.setItem(KEY, JSON.stringify(next))
     }
   } catch {
     /* private mode / quota */
@@ -97,7 +127,23 @@ export function setMemberSession(session: MemberSession | null) {
   window.dispatchEvent(new Event(EVENT))
 }
 
+/** sessionStorage prefix for cached portal API responses (see usePortalQuery). */
+export const PORTAL_CACHE_PREFIX = 'ckcl-portal-cache:'
+
+/** Drop every cached portal response (logout / expired session). */
+export function clearPortalCache() {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i)
+      if (k && k.startsWith(PORTAL_CACHE_PREFIX)) sessionStorage.removeItem(k)
+    }
+  } catch {
+    /* private mode */
+  }
+}
+
 export function clearMemberSession() {
+  clearPortalCache()
   setMemberSession(null)
 }
 

@@ -4,7 +4,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet, apiPost, ApiError, activeBaseURL, activePortalDomain } from './api/client'
 import {
+  PORTAL_CACHE_PREFIX,
   clearMemberSession,
+  clearPortalCache,
   getMemberSession,
   setMemberSession,
   type MemberProfile,
@@ -106,6 +108,7 @@ export async function portalLogin(identifier: string, password: string): Promise
   if (!data?.token || !data?.member?.id) {
     throw new ApiError('Sign-in response was incomplete. Please try again.', 500)
   }
+  clearPortalCache() // new sign-in: never show another session's cached dashboard
   const session: MemberSession = {
     token: data.token,
     expires_at: data.expires_at ?? null,
@@ -250,10 +253,44 @@ export async function submitPortalChangeRequest(payload: {
   )
 }
 
-function usePortalQuery<T>(loader: () => Promise<T>, enabled = true) {
-  const [data, setData] = useState<T | null>(null)
+/** Cache slot for one portal response, per signed-in member (sessionStorage, tab lifetime). */
+function portalCacheKey(name: string): string | null {
+  const id = getMemberSession()?.member?.id
+  return id ? `${PORTAL_CACHE_PREFIX}${id}:${name}` : null
+}
+
+function readPortalCache<T>(name?: string): T | null {
+  if (!name) return null
+  const key = portalCacheKey(name)
+  if (!key) return null
+  try {
+    const raw = sessionStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
+}
+
+function writePortalCache(name: string | undefined, value: unknown) {
+  if (!name) return
+  const key = portalCacheKey(name)
+  if (!key) return
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+/**
+ * Portal data hook. With `cacheName`, the last response is kept in sessionStorage so a page
+ * reload paints it straight away and refreshes quietly in the background; the blocking
+ * "Loading…" state only shows when nothing is cached yet (first open after sign-in).
+ */
+function usePortalQuery<T>(loader: () => Promise<T>, enabled = true, cacheName?: string) {
+  const [data, setData] = useState<T | null>(() => (enabled ? readPortalCache<T>(cacheName) : null))
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(enabled)
+  const [loading, setLoading] = useState(() => enabled && readPortalCache<T>(cacheName) == null)
   const [nonce, setNonce] = useState(0)
 
   useEffect(() => {
@@ -264,11 +301,19 @@ function usePortalQuery<T>(loader: () => Promise<T>, enabled = true) {
       return
     }
     let alive = true
-    setLoading(true)
+    const cached = readPortalCache<T>(cacheName)
+    if (cached != null) {
+      setData(cached)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     loader()
       .then((d) => {
-        if (alive) setData(d)
+        if (!alive) return
+        setData(d)
+        writePortalCache(cacheName, d)
       })
       .catch((e: Error) => {
         if (alive) {
@@ -284,7 +329,7 @@ function usePortalQuery<T>(loader: () => Promise<T>, enabled = true) {
     return () => {
       alive = false
     }
-  }, [enabled, nonce, loader])
+  }, [enabled, nonce, loader, cacheName])
 
   const reload = useCallback(() => setNonce((n) => n + 1), [])
   return { data, error, loading, reload }
@@ -292,12 +337,12 @@ function usePortalQuery<T>(loader: () => Promise<T>, enabled = true) {
 
 export function usePortalDashboard(enabled = true) {
   const loader = useCallback(() => fetchPortalDashboard(), [])
-  return usePortalQuery(loader, enabled)
+  return usePortalQuery(loader, enabled, 'dashboard')
 }
 
 export function usePortalMe(enabled = true) {
   const loader = useCallback(() => fetchPortalMe(), [])
-  return usePortalQuery(loader, enabled)
+  return usePortalQuery(loader, enabled, 'me')
 }
 
 export function usePortalInvoices(status: 'due' | 'paid' | 'all' = 'all', enabled = true) {

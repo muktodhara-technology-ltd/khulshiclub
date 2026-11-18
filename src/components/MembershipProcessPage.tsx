@@ -83,8 +83,9 @@ function Timeline() {
   const STEPS = useProcess().steps
   return (
     <div style={{ position: 'relative' }}>
-      {/* Vertical connector line */}
+      {/* Vertical connector line — single-column (mobile/tablet) only */}
       <div
+        className="lg:hidden"
         style={{
           position: 'absolute',
           left: 27,
@@ -96,7 +97,8 @@ function Timeline() {
         }}
       />
 
-      <div className="flex flex-col gap-6">
+      {/* Mobile/tablet: one column; desktop: two steps per row */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-6">
         {STEPS.map((step, i) => (
           <div key={i} className="flex gap-6 relative">
             {/* Node */}
@@ -730,7 +732,7 @@ export default function MembershipProcessPage({ onApply }: { onApply?: () => voi
         {/* Timeline */}
         <div className="mb-20">
           <div className="eyebrow mb-10" style={{ color: '#B98B43', fontSize: 11 }}>THE PROCESS</div>
-          <div style={{ maxWidth: 800 }}>
+          <div className="max-w-[800px] lg:max-w-none">
             <Timeline />
           </div>
         </div>

@@ -5,6 +5,7 @@
  *
  * Club is resolved by portal domain (same as member portal).
  */
+import { getMemberToken } from '../memberSession'
 
 function trimSlash(url: string) {
   return url.replace(/\/+$/, '')
@@ -99,15 +100,9 @@ function joinUrl(base: string, path: string) {
 }
 
 function readMemberBearer(): string | null {
-  try {
-    if (typeof window === 'undefined') return null
-    const raw = sessionStorage.getItem('ckcl_member_session')
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as { token?: string }
-    return parsed?.token ? String(parsed.token) : null
-  } catch {
-    return null
-  }
+  if (typeof window === 'undefined') return null
+  // Same store + expiry check as the portal (localStorage, shared by all tabs)
+  return getMemberToken()
 }
 
 function activeBackendURL(): string {

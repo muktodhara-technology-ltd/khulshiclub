@@ -175,16 +175,22 @@ const Icons = {
 }
 
 // ─── Status chip ──────────────────────────────────────────────────────────────
-function StatusChip({ status }: { status: Member['status'] }) {
-  const config = {
-    Active: { bg: T.greenDim, color: T.green, dot: T.green },
-    Suspended: { bg: T.amberDim, color: T.amber, dot: T.amber },
-    Expired: { bg: T.brandDim, color: T.brand700, dot: T.brand },
-  }[status]
+// Same rule as the membership card: "Active" only when the membership is approved AND the
+// admin's account switch (Members → Active / Inactive) is on; otherwise Deactive / Inactive.
+function StatusChip({ member }: { member: Member }) {
+  const st = membershipState(member)
+  const config = st.active
+    ? { bg: T.greenDim, color: T.green, dot: T.green }
+    : member.status === 'Suspended'
+      ? { bg: T.amberDim, color: T.amber, dot: T.amber }
+      : { bg: T.brandDim, color: T.brand700, dot: T.brand }
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: config.bg, color: config.color, borderRadius: 999, padding: '3px 9px', fontFamily: 'CKCL', fontSize: 11, fontWeight: 700 }}>
+    <span
+      title={st.title}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: config.bg, color: config.color, borderRadius: 999, padding: '3px 9px', fontFamily: 'CKCL', fontSize: 11, fontWeight: 700 }}
+    >
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: config.dot, flexShrink: 0 }}/>
-      {status}
+      {st.label}
     </span>
   )
 }
@@ -309,7 +315,7 @@ function SidebarMemberCard({ member, onNavigate, centered = false }: { member: M
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: centered ? 'center' : undefined }}>
         <TierChip tier={member.tier} color={member.tierColor}/>
-        <StatusChip status={member.status}/>
+        <StatusChip member={member}/>
       </div>
     </div>
   )
@@ -672,7 +678,7 @@ function CardField({ label, children }: { label: string; children: React.ReactNo
   return (
     <div style={{ minWidth: 0 }}>
       <div className="eyebrow" style={{ fontSize: 'clamp(7px,2.2cqw,8.5px)', lineHeight: 1.2, color: 'rgba(255,255,255,0.62)' }}>{label}</div>
-      <div style={{ fontSize: 'clamp(11px,3.6cqw,14px)', fontWeight: 600, lineHeight: 1.25, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>
+      <div style={{ fontSize: 'clamp(11px,3.6cqw,14px)', fontWeight: 600, lineHeight: 1.2, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>
     </div>
   )
 }
@@ -700,7 +706,7 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
       <div style={{ position: 'absolute', right: '-18%', bottom: '-55%', width: '75%', aspectRatio: '1', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.12)', pointerEvents: 'none' }}/>
       <div style={{ position: 'absolute', right: '-8%', bottom: '-40%', width: '55%', aspectRatio: '1', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.10)', pointerEvents: 'none' }}/>
 
-      <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', gap: '4cqw' }}>
+      <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', gap: '3cqw' }}>
         {/* Header band: club mark + membership status */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: '2.6cqw', borderBottom: '1px solid rgba(255,255,255,0.18)' }}>
           <div style={{ minWidth: 0 }}>
@@ -722,14 +728,15 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
             <PersonPortrait src={member.photo} name={member.name} initialSize="9cqw" captionOverlay={false} />
           </div>
 
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          {/* Fields packed with a small even gap (not spread) so all six always fit inside the card */}
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.6cqw' }}>
             <CardField label="Name">
               <span style={{ fontSize: 'clamp(12px,4.4cqw,17px)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>{member.name}</span>
             </CardField>
             <CardField label="Membership type">{member.tier}</CardField>
             {/* Job title only — the employer doesn't fit on the card */}
             <CardField label="Occupation">{(member.profession || '—').split(',')[0]}</CardField>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3cqw' }}>
               <CardField label="Membership code">
                 <span style={{ letterSpacing: '0.14em' }}>{member.memberNo}</span>
               </CardField>
@@ -743,12 +750,12 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
   )
 }
 
-// Reason + next step under the card when the membership is not active
+// Reason + next step at the very top of the dashboard when the membership is not active
 function InactiveNote({ member, onNavigate }: { member: Member; onNavigate: (p: PortalPage) => void }) {
   const st = membershipState(member)
   if (st.active) return null
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 10, padding: '10px 12px', background: st.bg, border: `1px solid ${st.border}`, borderRadius: 12 }}>
+    <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '12px 14px', background: st.bg, border: `1px solid ${st.border}`, borderRadius: 12 }}>
       <span style={{ flex: '1 1 200px', fontFamily: 'CKCL', fontSize: 13, color: T.ink600, lineHeight: 1.45 }}>{st.note}</span>
       {st.ctas.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, flexShrink: 0 }}>
@@ -1011,13 +1018,18 @@ function AdTag({ side = 'right' }: { side?: 'left' | 'right' }) {
   )
 }
 
-function PromoAd({ title, body, cta, img, imageSide, background }: {
-  title: string; body: string; cta: string; img: string | null; imageSide: 'left' | 'right'; background: string
+function PromoAd({ title, body, cta, href, img, imageSide, background }: {
+  title: string; body: string; cta: string; href?: string | null; img: string | null; imageSide: 'left' | 'right'; background: string
 }) {
+  // Button link from Admin → Website Maintenance → Offers → Ads; external links open in a new tab
+  const link = href && href !== '#' ? href : null
+  const external = !!link && /^https?:\/\//i.test(link)
   return (
     <a
-      href="#"
-      onClick={(e) => e.preventDefault()}
+      href={link || '#'}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      onClick={(e) => { if (!link) e.preventDefault() }}
       style={{ position: 'relative', display: 'flex', flexDirection: imageSide === 'left' ? 'row' : 'row-reverse', alignItems: 'stretch', minHeight: 140, borderRadius: 14, overflow: 'hidden', background, border: '1px solid rgba(225,11,23,0.10)', textDecoration: 'none', transition: 'transform 180ms, box-shadow 180ms' }}
       onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-2px)'; el.style.boxShadow = '0 10px 28px rgba(14,17,22,0.10)' }}
       onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.transform = ''; el.style.boxShadow = 'none' }}
@@ -1061,6 +1073,7 @@ function AdRail() {
           title={p.title}
           body={p.body || p.offer_text || ''}
           cta={p.cta_label || 'Learn more'}
+          href={p.cta_url || null}
           img={p.image || null}
           imageSide={i % 2 === 0 ? 'left' : 'right'}
           background={gradients[i % gradients.length]}
@@ -1190,10 +1203,12 @@ function Dashboard({
     <div id="dash-grid">
       {/* Centre column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+        {/* Inactive / dues notice — top of the page, above every card */}
+        <InactiveNote member={member} onNavigate={onNavigate}/>
+
         {/* Phones/tablets: the membership card (with its status) comes first */}
         <div id="dash-card-top">
           <div style={{ maxWidth: 440, margin: '0 auto' }}><MembershipCard member={member} onOpen={openCard}/></div>
-          <InactiveNote member={member} onNavigate={onNavigate}/>
         </div>
 
         <NoticeStrip count={(notices || []).length} onNavigate={onNavigate}/>
@@ -1202,7 +1217,6 @@ function Dashboard({
         <div id="dash-summary">
           <div id="dash-card-inrow">
             <MembershipCard member={member} onOpen={openCard}/>
-            <InactiveNote member={member} onNavigate={onNavigate}/>
           </div>
           <DuesCard outstanding={totalOutstanding} onNavigate={onNavigate} nextDueDate={nextDueDate} overdueCount={overdueCount}/>
           <ViewAllCard onNavigate={onNavigate}/>
@@ -1420,7 +1434,7 @@ function MembershipCardView({ member, onNavigate }: { member: Member; onNavigate
 
       <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
         <MembershipCard member={member}/>
-        <InactiveNote member={member} onNavigate={onNavigate}/>
+        <div style={{ marginTop: 10 }}><InactiveNote member={member} onNavigate={onNavigate}/></div>
       </div>
 
       {/* Segmented control */}
@@ -3173,6 +3187,8 @@ export default function MemberPortalPage({
         /* Dashboard: centre column + 360px ad rail; rail drops below the content under 1280px */
         #dash-grid { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:24px; align-items:start; padding-bottom:80px; }
         #dash-ads { display:flex; flex-direction:column; gap:16px; position:sticky; top:96px; }
+        /* No offers / ads → the main column takes the full width */
+        #dash-grid:not(:has(#dash-ads)) { grid-template-columns:minmax(0,1fr); }
         @media (max-width:1279px) {
           #dash-grid { grid-template-columns:minmax(0,1fr) !important; }
           #dash-ads { position:static; display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }

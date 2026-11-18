@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { PageId } from './InnerPage'
 import type { CommitteePageType } from './CommitteePage'
+import { useMemberSession } from '../lib/memberSession'
 import { useSiteInfo } from '../lib/siteInfo'
 import ClubLogo from './ClubLogo'
 import { pathForPage, type RoutedPage } from '../lib/routing'
@@ -110,6 +111,9 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
   const site = useSiteInfo()
   const phone = site.contact.phone
   const email = site.contact.email
+  // Signed-in member: the login button becomes a shortcut to their portal
+  const { memberNo: signedInMemberNo } = useMemberSession()
+  const accountLabel = signedInMemberNo ? 'My Portal' : 'Member Login'
   const [scrolled, setScrolled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -371,7 +375,7 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Member Login
+              {accountLabel}
             </button>
           </div>
 
@@ -499,7 +503,7 @@ export default function Navbar({ onInnerNavigate, currentPage, onOpenSearch }: {
                 }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Member Login
+                {accountLabel}
               </button>
               <div className="text-center mt-1" style={{ fontFamily: 'CKCL', fontSize: 13, color: '#5C6673' }}>
                 {[phone, email].filter(Boolean).join(' · ')}

@@ -2016,6 +2016,12 @@ function ContactStrip() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 type AppPage = PageId | 'home' | `committee:${CommitteePageType}` | 'facilities' | `facility:${FacilityId}` | 'membership-process' | 'member-list' | 'become-member' | 'media' | 'resources' | 'contact' | 'search' | '404' | 'member-login' | 'member-portal'
 
+/** Sends a signed-in member from /login to their portal after the first paint. */
+function SignedInRedirect({ onRedirect }: { onRedirect: () => void }) {
+  useEffect(() => { onRedirect() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
 export default function App() {
   return (
     <Suspense fallback={<div style={{ minHeight: '100vh', background: '#F7F8FA' }} />}>
@@ -2122,6 +2128,11 @@ function AppRoutes() {
       setSearchOpen(true)
       return
     }
+    // Already signed in → "Member Login" opens the member's portal, not the login form
+    if (id === 'member-login' && loggedInMemberNo) {
+      go('member-portal', 'notices', 'push', 'dashboard')
+      return
+    }
     go(id as AppPage, id === 'media' ? 'notices' : mediaTab)
   }
 
@@ -2224,6 +2235,16 @@ function AppRoutes() {
       initialQuery={searchQuery}
     />
   )
+
+  if (page === 'member-login' && loggedInMemberNo) {
+    // /login while signed in (bookmark, back button, new tab) → straight to the portal
+    return (
+      <>
+        {searchChrome}
+        <SignedInRedirect onRedirect={() => go('member-portal', 'notices', 'replace', 'dashboard')} />
+      </>
+    )
+  }
 
   if (page === 'member-login') {
     return (
