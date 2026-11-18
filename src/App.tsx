@@ -1497,8 +1497,8 @@ function PeopleShowcase({
         .committee-edge-fade {
           position: relative;
         }
-        .marquee-viewport,
-        .committee-carousel-mobile {
+        /* Soft edge fade on desktop only — on phones it read as a white haze over the side cards */
+        .marquee-viewport {
           -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%);
                   mask-image: linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%);
         }
