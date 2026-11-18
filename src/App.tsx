@@ -1738,11 +1738,13 @@ function MembershipCTA() {
     >
       <div className="absolute inset-0">
         {m.background ? (
+          // Pinned to all four edges and centred, so on tall phone layouts it covers the whole
+          // section from the middle instead of sitting at the top
           <img
             src={m.background}
             alt=""
-            className="w-full h-full object-cover opacity-40"
-            style={{ display: 'block' }}
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
+            style={{ display: 'block', objectPosition: 'center center' }}
           />
         ) : null}
         <div className="absolute inset-0" style={{ background: 'rgba(14,17,22,0.65)' }}/>
