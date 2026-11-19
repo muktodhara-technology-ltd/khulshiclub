@@ -15,6 +15,8 @@ export type MemberProfile = {
   full_name: string
   first_name?: string | null
   last_name?: string | null
+  /** Short name for the membership card (max 20), set by admin */
+  card_name?: string | null
   status?: string | null
   /** Account Active/Inactive (dues lock). Separate from membership lifecycle status. */
   is_account_active?: boolean

@@ -196,8 +196,8 @@ function Timeline() {
 function CardField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ minWidth: 0, fontFamily: 'CKCL' }}>
-      <div className="eyebrow" style={{ fontSize: 'clamp(7px,2.2cqw,8.5px)', lineHeight: 1.2, color: 'rgba(255,255,255,0.62)' }}>{label}</div>
-      <div style={{ fontSize: 'clamp(11px,3.6cqw,14px)', fontWeight: 600, lineHeight: 1.25, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>
+      <div className="eyebrow" style={{ fontSize: 'min(2.125cqw,8.5px)', lineHeight: 1.2, color: 'rgba(255,255,255,0.62)' }}>{label}</div>
+      <div style={{ fontSize: 'min(3.5cqw,14px)', fontWeight: 600, lineHeight: 1.25, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>
     </div>
   )
 }
@@ -263,9 +263,9 @@ function TierCard({ tier, onApply }: { tier: Tier; onApply: () => void }) {
           <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', gap: '4cqw' }}>
             {/* Header band: club mark + Details (flips to the back) */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: '2.6cqw', borderBottom: '1px solid rgba(255,255,255,0.18)' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 'clamp(14px,5cqw,18px)', letterSpacing: '0.04em', lineHeight: 1 }}>{site.short_name || site.club_name}</div>
-                <div style={{ fontSize: 'clamp(7.5px,2.4cqw,9.5px)', color: 'rgba(255,255,255,0.7)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{site.club_name ? `${site.club_name} · ` : ''}Membership Card</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 'min(3.4cqw,13.5px)', letterSpacing: '0.03em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{site.club_name || site.short_name}</div>
+                <div style={{ fontSize: 'min(2.375cqw,9.5px)', color: 'rgba(255,255,255,0.7)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Membership Card</div>
               </div>
               <button
                 className="mcard-btn"
@@ -289,7 +289,7 @@ function TierCard({ tier, onApply }: { tier: Tier; onApply: () => void }) {
 
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <CardField label="Name">
-                  <span style={{ fontSize: 'clamp(12px,4.4cqw,17px)', letterSpacing: '0.02em' }}>YOUR NAME</span>
+                  <span style={{ fontSize: 'min(4.25cqw,17px)', letterSpacing: '0.02em' }}>YOUR NAME</span>
                 </CardField>
                 <CardField label="Membership type">{tier.name}</CardField>
                 <CardField label="Occupation">Your occupation</CardField>
@@ -765,7 +765,7 @@ export default function MembershipProcessPage({ onApply }: { onApply?: () => voi
             .mcard-inner { transition: transform 750ms cubic-bezier(.22,1,.36,1); }
             .mcard:hover .mcard-inner:not(.is-flipped) { transform: translateY(-4px); }
             .mcard-inner.is-flipped { transform: rotateY(180deg); }
-            .mcard-face { position:absolute; inset:0; border-radius:18px; overflow:hidden; padding:18px 20px; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+            .mcard-face { position:absolute; inset:0; border-radius:18px; overflow:hidden; padding:min(4.5%,18px) min(5%,20px); backface-visibility:hidden; -webkit-backface-visibility:hidden; }
             .mcard-btn { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; padding:8px 14px; border-radius:999px; font-family:CKCL; font-size:12.5px; font-weight:600; white-space:nowrap; cursor:pointer; transition:background 160ms, transform 160ms; }
             .mcard-btn:hover { transform:translateY(-1px); }
             .mcard-apply:hover { background:#B70813 !important; }

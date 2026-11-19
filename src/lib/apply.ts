@@ -181,6 +181,7 @@ export function buildApplicationFormData(account: ApplicantAccount, form: Applic
 
   append(fd, 'first_name', first)
   append(fd, 'last_name', last)
+  append(fd, 'card_name', (p.cardName || '').trim().slice(0, 20))
   append(fd, 'father_name', p.fatherName)
   append(fd, 'mother_name', p.motherName)
   append(fd, 'marital_status', maritalOf(p.maritalStatus))

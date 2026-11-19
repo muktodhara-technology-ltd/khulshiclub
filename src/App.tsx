@@ -1497,11 +1497,6 @@ function PeopleShowcase({
         .committee-edge-fade {
           position: relative;
         }
-        /* Soft edge fade on desktop only — on phones it read as a white haze over the side cards */
-        .marquee-viewport {
-          -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%);
-                  mask-image: linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%);
-        }
         .committee-card { transition: transform 300ms cubic-bezier(.22,1,.36,1); }
         .committee-card img { transition: transform 600ms cubic-bezier(.22,1,.36,1); }
         .committee-card:hover { transform: translateY(-6px); }

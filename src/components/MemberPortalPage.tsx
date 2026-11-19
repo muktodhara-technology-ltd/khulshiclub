@@ -73,7 +73,7 @@ const T = {
 type PortalPage = 'dashboard' | 'membership-card' | 'personal-info' | 'account-statement' | 'payment-history' | 'invoices' | 'bank-accounts' | 'change-request' | 'helpdesk' | 'change-password' | 'services'
 
 type Member = {
-  name: string; memberNo: string; tier: string
+  name: string; cardName: string; memberNo: string; tier: string
   /** Membership-type card colour from the API (hex) — null = default dark card. */
   tierColor: string | null
   status: 'Active' | 'Suspended' | 'Expired'
@@ -130,6 +130,8 @@ function mapMemberFromApi(profile: MemberProfile | null | undefined, outstanding
     : ''
   return {
     name: profile?.full_name || 'Member',
+    // Admin-set short name for the membership card; falls back to the full name
+    cardName: String(profile?.card_name || '').trim() || profile?.full_name || 'Member',
     memberNo: String(profile?.member_no || memberNoFallback || '').toUpperCase(),
     tier: profile?.membership_type || 'Member',
     tierColor: profile?.membership_type_color || null,
@@ -228,7 +230,7 @@ function AvatarDropdown({ member, onNavigate, onLogout }: { member: Member; onNa
         onMouseLeave={(e) => { if (!open) { const el = e.currentTarget as HTMLElement; el.style.background = T.surface0; el.style.borderColor = T.ink100 } }}
       >
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${T.brass}`, overflow: 'hidden' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 5, border: `2px solid ${T.brass}`, overflow: 'hidden' }}>
             <PersonPortrait src={member.photo} name={member.name} initialSize="13px" captionOverlay={false} />
           </div>
           {/* Membership status dot — phones/tablets */}
@@ -251,7 +253,7 @@ function AvatarDropdown({ member, onNavigate, onLogout }: { member: Member; onNa
           <div style={{ position: 'fixed', inset: 0, zIndex: 98 }} onClick={() => setOpen(false)}/>
           <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 99, width: 240, background: T.surface0, borderRadius: 14, border: `1px solid ${T.ink100}`, boxShadow: '0 8px 32px rgba(14,17,22,0.12), 0 2px 8px rgba(14,17,22,0.06)', overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', borderBottom: `1px solid ${T.ink100}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2px solid ${T.brass}`, overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 6, border: `2px solid ${T.brass}`, overflow: 'hidden', flexShrink: 0 }}>
                 <PersonPortrait src={member.photo} name={member.name} initialSize="16px" captionOverlay={false} />
               </div>
               <div style={{ minWidth: 0 }}>
@@ -292,7 +294,7 @@ function SidebarMemberCard({ member, onNavigate, centered = false }: { member: M
   return (
     <div style={{ padding: '4px 8px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ position: 'relative', width: 76, height: 76, alignSelf: centered ? 'center' : undefined }}>
-        <div style={{ width: 76, height: 76, borderRadius: '50%', border: `2px solid ${T.brass}`, overflow: 'hidden', background: T.surface100 }}>
+        <div style={{ width: 76, height: 76, borderRadius: 8, border: `2px solid ${T.brass}`, overflow: 'hidden', background: T.surface100 }}>
           <PersonPortrait src={member.photo} name={member.name} initialSize="30px" captionOverlay={false} />
         </div>
         <button
@@ -677,8 +679,8 @@ function tierCardGradient(color: string | null): [string, string] {
 function CardField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div className="eyebrow" style={{ fontSize: 'clamp(7px,2.2cqw,8.5px)', lineHeight: 1.2, color: 'rgba(255,255,255,0.62)' }}>{label}</div>
-      <div style={{ fontSize: 'clamp(11px,3.6cqw,14px)', fontWeight: 600, lineHeight: 1.2, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>
+      <div className="eyebrow" style={{ fontSize: 'min(2.125cqw,8.5px)', lineHeight: 1.2, color: 'rgba(255,255,255,0.62)' }}>{label}</div>
+      <div style={{ fontSize: 'min(3.5cqw,14px)', fontWeight: 600, lineHeight: 1.2, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>
     </div>
   )
 }
@@ -696,7 +698,7 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
       aria-label={onOpen ? `Membership card ${member.memberNo}${active ? '' : ' (inactive)'} — view details and transactions` : undefined}
       className={onOpen ? 'pcard pcard-clickable' : 'pcard'}
       style={{
-        position: 'relative', display: 'block', width: '100%', aspectRatio: '1.586', padding: '18px 20px', borderRadius: 18, overflow: 'hidden', border: 'none', textAlign: 'left',
+        position: 'relative', display: 'block', width: '100%', aspectRatio: '1.586', padding: 'min(4.5%,18px) min(5%,20px)', borderRadius: 18, overflow: 'hidden', border: 'none', textAlign: 'left',
         background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`, color: '#FFFFFF', boxShadow: '0 18px 40px -18px rgba(14,17,22,0.55)',
         cursor: onOpen ? 'pointer' : 'default', fontFamily: 'CKCL', containerType: 'inline-size',
       }}
@@ -709,13 +711,13 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
       <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', gap: '3cqw' }}>
         {/* Header band: club mark + membership status */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: '2.6cqw', borderBottom: '1px solid rgba(255,255,255,0.18)' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 'clamp(14px,5cqw,18px)', letterSpacing: '0.04em', lineHeight: 1 }}>{site.short_name || site.club_name}</div>
-            <div style={{ fontSize: 'clamp(7.5px,2.4cqw,9.5px)', color: 'rgba(255,255,255,0.7)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{site.club_name ? `${site.club_name} · ` : ''}Membership Card</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 'min(3.4cqw,13.5px)', letterSpacing: '0.03em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{site.club_name || site.short_name}</div>
+            <div style={{ fontSize: 'min(2.375cqw,9.5px)', color: 'rgba(255,255,255,0.7)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Membership Card</div>
           </div>
           <span
             role="status"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 999, background: active ? 'rgba(255,255,255,0.92)' : '#FFF1F2', color: active ? T.green : T.brand700, fontSize: 'clamp(9px,2.8cqw,10.5px)', fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 999, background: active ? 'rgba(255,255,255,0.92)' : '#FFF1F2', color: active ? T.green : T.brand700, fontSize: 'min(2.625cqw,10.5px)', fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? T.green : T.brand }}/>
             {st.label.toUpperCase()}
@@ -731,7 +733,7 @@ function MembershipCard({ member, onOpen }: { member: Member; onOpen?: () => voi
           {/* Fields packed with a small even gap (not spread) so all six always fit inside the card */}
           <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.6cqw' }}>
             <CardField label="Name">
-              <span style={{ fontSize: 'clamp(12px,4.4cqw,17px)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>{member.name}</span>
+              <span style={{ fontSize: 'min(4.25cqw,17px)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>{member.cardName}</span>
             </CardField>
             <CardField label="Membership type">{member.tier}</CardField>
             {/* Job title only — the employer doesn't fit on the card */}
@@ -3199,7 +3201,9 @@ export default function MemberPortalPage({
         /* Summary row (tablet/desktop): membership card | full dues card | narrow view-all tile.
            The card's aspect ratio sets the row height; dues and view-all stretch to match.
            Phones (<768px): the card moves to the top of the dashboard and dues turns compact. */
-        #dash-summary { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 112px; gap:16px; align-items:stretch; }
+        /* Card column keeps the 1.25 : 1 split but never grows past 440px, so on a full-width page
+           the card (and the row) stays the same size and the dues card takes the extra width */
+        #dash-summary { display:grid; grid-template-columns:min(440px, calc((100% - 144px) * 0.5556)) minmax(0,1fr) 112px; gap:16px; align-items:stretch; }
         #dash-viewall { display:flex; flex-direction:column; }
         #dash-card-top { display:none; }
         #dash-dues-full { display:flex; }

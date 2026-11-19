@@ -14,6 +14,8 @@ export type OtherClub = { name: string; type: string; year: string }
 export type ApplicationForm = {
   personal: {
     fullName: string; fatherName: string; motherName: string
+    /** Short name for the membership card, max 20 letters; empty = full name */
+    cardName?: string
     maritalStatus: string; spouseName: string; anniversary: string
     dob: string; birthPlace: string; phone: string; tel: string; email: string
     nationality: string; bloodGroup: string; nidNo: string; passportNo: string; etin: string

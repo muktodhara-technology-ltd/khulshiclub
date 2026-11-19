@@ -779,6 +779,12 @@ function Step1({ form, update }: StepProps) {
       </div>
 
       <TextInput label="Full Name" value={p.fullName} onChange={(v) => set({ fullName: v })} required autoComplete="name"/>
+      <div>
+        <TextInput label="Name on Membership Card" value={p.cardName || ''} onChange={(v) => set({ cardName: v.slice(0, 20) })} placeholder="e.g. MD. NIAZ MORSHED"/>
+        <div style={{ fontFamily: 'CKCL', fontSize: 12, color: T.ink400, marginTop: 6 }}>
+          Max 20 letters ({(p.cardName || '').length}/20). Leave empty to use your full name.
+        </div>
+      </div>
       <Row>
         <TextInput label="Father's Name" value={p.fatherName} onChange={(v) => set({ fatherName: v })} required />
         <TextInput label="Mother's Name" value={p.motherName} onChange={(v) => set({ motherName: v })} required />
