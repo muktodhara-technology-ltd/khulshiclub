@@ -1063,7 +1063,9 @@ function AdRail() {
     'linear-gradient(120deg, #F7F2EA 0%, #EEF1F5 100%)',
   ]
 
-  if (!loading && offers.length === 0) return null
+  // No empty column while offers load: the rail appears only once there is something to show,
+  // so the main column has the full width from the first paint (cached offers show instantly).
+  if (loading || offers.length === 0) return null
 
   return (
     <aside id="dash-ads" aria-label="Sponsored">
