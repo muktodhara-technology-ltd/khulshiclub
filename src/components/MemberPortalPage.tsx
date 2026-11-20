@@ -230,7 +230,7 @@ function AvatarDropdown({ member, onNavigate, onLogout }: { member: Member; onNa
         onMouseLeave={(e) => { if (!open) { const el = e.currentTarget as HTMLElement; el.style.background = T.surface0; el.style.borderColor = T.ink100 } }}
       >
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 5, border: `2px solid ${T.brass}`, overflow: 'hidden' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${T.brass}`, overflow: 'hidden' }}>
             <PersonPortrait src={member.photo} name={member.name} initialSize="13px" captionOverlay={false} />
           </div>
           {/* Membership status dot — phones/tablets */}
